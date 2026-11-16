@@ -111,9 +111,7 @@ fn select_source_if_needed(ctx: &AppContext, target: &str) {
     if current_input_source_id(ctx).as_deref() == Some(target) {
         return;
     }
-    if !ctx.select_input_source(target) {
-        log::warn!("Failed to switch input source to {target}");
-    }
+    ctx.select_input_source(target);
 }
 
 fn remember_source(ctx: &mut AppContext, pane_id: PaneId, source_id: &str) {

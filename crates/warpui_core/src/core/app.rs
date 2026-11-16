@@ -2323,7 +2323,7 @@ impl AppContext {
     }
 
     /// Selects the OS keyboard input source with the given unique ID.
-    pub fn select_input_source(&self, source_id: &str) -> bool {
+    pub fn select_input_source(&self, source_id: &str) {
         self.platform_delegate.select_input_source(source_id)
     }
 

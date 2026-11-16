@@ -1,11 +1,13 @@
 //! Queries and selection of the current macOS keyboard input source (IME) via
 //! the Carbon Text Input Source (TIS) APIs.
 //!
-//! TIS APIs must run on the main thread; callers in the UI layer are already on it.
+//! TIS APIs must run on the main thread; selection is dispatched onto the main
+//! queue, queries run on the caller's (already main-thread) context.
 
 use std::ffi::c_void;
 use std::ptr::NonNull;
 
+use dispatch2::DispatchQueue;
 use objc2_core_foundation::{CFArray, CFRetained, CFString, CFType};
 
 // Carbon Text Input Services. See crates/computer_use/src/mac/keycode_cache.rs for
@@ -40,14 +42,33 @@ pub fn current_input_source_id() -> Option<String> {
     Some(id.to_string())
 }
 
-/// Selects the keyboard input source with the given unique ID, enumerating the
-/// available sources and matching on ID. Returns whether the selection succeeded.
-pub fn select_input_source(source_id: &str) -> bool {
+/// Queues selection of the keyboard input source with the given unique ID on
+/// the main queue.
+///
+/// TISSelectInputSource blocks on a synchronous XPC round trip with the IME
+/// host process and may spin a nested run loop while waiting, during which
+/// AppKit re-enters Warp's input handling. Calling it while AppContext is
+/// borrowed (e.g. from within event dispatch) therefore double-borrows its
+/// RefCell and panics; deferring to the main queue runs the call outside the
+/// dispatch that requested it.
+pub fn select_input_source(source_id: &str) {
+    let source_id = source_id.to_owned();
+    DispatchQueue::main().exec_async(move || {
+        apply_input_source_selection(&source_id);
+    });
+}
+
+/// Enumerates the available sources, matches on ID and selects. Logs failures.
+fn apply_input_source_selection(source_id: &str) {
+    if current_input_source_id().as_deref() == Some(source_id) {
+        return;
+    }
     // Passing NULL properties with include_all=true enumerates every registered
     // input source, including built-in keyboard layouts that are not in the
     // user's enabled IME list.
     let Some(ptr) = (unsafe { TISCreateInputSourceList(std::ptr::null(), 1) }) else {
-        return false;
+        log::warn!("Failed to enumerate input sources while selecting {source_id}");
+        return;
     };
     // TISCreate* follows CF "Create" semantics; wrap in CFRetained to release on drop.
     let list = unsafe { CFRetained::from_raw(ptr) };
@@ -66,8 +87,11 @@ pub fn select_input_source(source_id: &str) -> bool {
         }
         let id = unsafe { &*(property as *const CFString) };
         if id.to_string() == source_id {
-            return unsafe { TISSelectInputSource(source) == 0 };
+            if unsafe { TISSelectInputSource(source) } != 0 {
+                log::warn!("Failed to select input source {source_id}");
+            }
+            return;
         }
     }
-    false
+    log::warn!("Input source {source_id} not found");
 }

@@ -286,12 +286,10 @@ pub trait Delegate: 'static {
         None
     }
 
-    /// Selects the keyboard input source with the given unique ID and returns
-    /// whether the selection succeeded. Default no-op on platforms without
-    /// selectable input sources. Must be called from the main thread.
-    fn select_input_source(&self, _source_id: &str) -> bool {
-        false
-    }
+    /// Selects the keyboard input source with the given unique ID. Default no-op
+    /// on platforms without selectable input sources. Must be called from the
+    /// main thread.
+    fn select_input_source(&self, _source_id: &str) {}
 
     fn terminate_app(&self, termination_mode: TerminationMode);
 

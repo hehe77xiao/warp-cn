@@ -303,7 +303,7 @@ impl platform::Delegate for AppDelegate {
         super::input_source::current_input_source_id()
     }
 
-    fn select_input_source(&self, source_id: &str) -> bool {
+    fn select_input_source(&self, source_id: &str) {
         super::input_source::select_input_source(source_id)
     }
 
