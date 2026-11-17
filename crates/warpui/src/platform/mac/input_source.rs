@@ -88,6 +88,15 @@ fn apply_input_source_selection(source_id: &str) {
         // A removed/renamed source keeps its stale handle cached; drop it so the
         // next lookup re-enumerates.
         SOURCE_CACHE.with(|cache| cache.borrow_mut().remove(source_id));
+    } else {
+        // TISSelectInputSource only changes the global source: the focused
+        // window's TSM document stays bound to the previous IME session until
+        // AppKit fixes it, and until then every keystroke pays a synchronous
+        // IMK XPC round trip to the old host (multi-second main-thread stalls
+        // observed with third-party IMEs). closeIMEAsync runs the AppKit fix
+        // path (discardMarkedText → MyFixTSMDocument) on the next main-queue
+        // turn, rebinding the document to the newly selected source.
+        super::window::Window::close_ime_on_active_window();
     }
 }
 
