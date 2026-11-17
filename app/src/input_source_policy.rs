@@ -2,13 +2,10 @@
 //!
 //! - Exempt panes (title matches the exemption rule): always restore that pane's
 //!   remembered input source (snapshot taken when the pane loses focus).
-//! - Non-exempt panes: force the English keyboard layout only when the window
-//!   itself becomes active (returning to Warp from another app), not on in-window
-//!   pane switches. Each forced TIS switch carries a multi-hundred-ms (sometimes
-//!   multi-second, with third-party IMEs) synchronous cost on the main thread,
-//!   so pane switches leaving a non-exempt pane alone keep the current source
-//!   and the round-trip switching between a terminal pane and an exempt pane
-//!   costs one switch instead of two.
+//! - Non-exempt panes: force the English keyboard layout. Each forced TIS switch
+//!   carries a synchronous main-thread cost (IME host XPC plus AppKit's follow-up
+//!   IMK session activation and menu rebuild), which the debouncing below and the
+//!   platform-side handle caching aim to minimize rather than repeat.
 //! - Requests are debounced: only the last requested target within the settle
 //!   window is applied, so rapid pane ping-pongs collapse into a single
 //!   (possibly no-op) switch.
@@ -212,12 +209,10 @@ fn exemption_matches(
 }
 
 /// Applies the rule for `pane_id`'s title: restore its remembered source when
-/// exempt; otherwise force English only when `force_non_exempt` (window
-/// activation), leaving in-window pane switches untouched.
+/// exempt, otherwise force English.
 fn apply_for_pane(
     pane_group: &ViewHandle<PaneGroup>,
     pane_id: PaneId,
-    force_non_exempt: bool,
     trigger: &'static str,
     ctx: &mut ViewContext<Workspace>,
 ) {
@@ -241,7 +236,7 @@ fn apply_for_pane(
         if let Some(source_id) = remembered {
             request_source_switch(ctx, &source_id, trigger);
         }
-    } else if force_non_exempt {
+    } else {
         request_source_switch(ctx, ENGLISH_INPUT_SOURCE_ID, trigger);
     }
 }
@@ -273,19 +268,18 @@ pub fn on_pane_focused(
         model.last_focused.insert(window_id, focused);
     });
 
-    apply_for_pane(pane_group, focused, false, "pane-focused", ctx);
+    apply_for_pane(pane_group, focused, "pane-focused", ctx);
 }
 
 /// Called when this window becomes the active window. No outgoing-pane
 /// snapshot: while Warp was inactive the system input source may have changed
-/// for another app's sake, so this is the point where a non-exempt pane is
-/// forced back to English.
+/// for another app's sake.
 pub fn on_window_activated(pane_group: &ViewHandle<PaneGroup>, ctx: &mut ViewContext<Workspace>) {
     if !policy_enabled(ctx) {
         return;
     }
     let focused = pane_group.as_ref(ctx).focused_pane_id(ctx);
-    apply_for_pane(pane_group, focused, true, "window-activated", ctx);
+    apply_for_pane(pane_group, focused, "window-activated", ctx);
 }
 
 /// Called when this window is losing active-window status: snapshot the
