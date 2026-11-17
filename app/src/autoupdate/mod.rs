@@ -138,6 +138,12 @@ impl AutoupdateState {
         if self.polling_started {
             return;
         }
+        // The OSS channel ships no legacy release artifacts and defines no releases base
+        // URL, so every legacy check fails on a URL without a base. `github_update` owns
+        // update checks on this fork's release channel.
+        if ChannelState::channel() == Channel::Oss {
+            return;
+        }
         if FeatureFlag::Autoupdate.is_enabled() && AppExecutionMode::as_ref(ctx).can_autoupdate() {
             log::info!("Starting autoupdate polling loop");
             self.polling_started = true;
