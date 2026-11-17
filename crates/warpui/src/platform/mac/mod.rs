@@ -17,6 +17,7 @@ pub mod utils;
 mod window;
 
 pub use app::{App, AppExt, rebuild_main_menu};
+pub use input_source::{current_input_source_id, fix_current_input_context, select_input_source};
 use clipboard::*;
 use cocoa::base::{id, nil};
 use cocoa::foundation::NSAutoreleasePool;

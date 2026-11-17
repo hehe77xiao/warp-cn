@@ -521,3 +521,20 @@ void warp_marked_text_cleared(WarpHostView *);
 }
 
 @end
+
+// Forces the currently active text input context to re-resolve its input method
+// instance against the selected input source. After an input-source change the
+// TSM document can keep the previous IME session bound, and until it is fixed
+// every keystroke pays a synchronous IMK XPC round trip to the previous host
+// (multi-second main-thread stalls observed with both third-party and built-in
+// IMEs). `discardMarkedText` alone is a no-op without active composition, so
+// the deactivate/activate pair is what actually rebinds the document.
+void warp_fix_current_input_context(void) {
+    NSTextInputContext *inputContext = [NSTextInputContext currentInputContext];
+    if (!inputContext) {
+        return;
+    }
+    [inputContext deactivate];
+    [inputContext activate];
+    [inputContext discardMarkedText];
+}

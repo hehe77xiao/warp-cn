@@ -61,6 +61,25 @@ pub fn select_input_source(source_id: &str) {
     });
 }
 
+unsafe extern "C" {
+    /// host_view.m: forces the active text input context to re-resolve its IME
+    /// instance against the selected source (see the comment there for why
+    /// deactivate/activate is needed).
+    fn warp_fix_current_input_context();
+}
+
+/// Queues a re-resolve of the active text input context on the main queue.
+///
+/// Must not run synchronously inside view/model event dispatch: the underlying
+/// TSM fix can make synchronous IMK XPC calls that spin a nested run loop,
+/// during which AppKit re-enters Warp's input handling (see
+/// [`select_input_source`] for the same reasoning).
+pub fn fix_current_input_context() {
+    DispatchQueue::main().exec_async(|| unsafe {
+        warp_fix_current_input_context();
+    });
+}
+
 /// Resolves the cached source handle and selects it, logging the elapsed time:
 /// the blocking XPC wait inside `TISSelectInputSource` (plus AppKit's follow-up
 /// IMK menu rebuild) is exactly what the user perceives as a UI freeze, so the
@@ -91,12 +110,11 @@ fn apply_input_source_selection(source_id: &str) {
     } else {
         // TISSelectInputSource only changes the global source: the focused
         // window's TSM document stays bound to the previous IME session until
-        // AppKit fixes it, and until then every keystroke pays a synchronous
-        // IMK XPC round trip to the old host (multi-second main-thread stalls
-        // observed with third-party IMEs). closeIMEAsync runs the AppKit fix
-        // path (discardMarkedText → MyFixTSMDocument) on the next main-queue
-        // turn, rebinding the document to the newly selected source.
-        super::window::Window::close_ime_on_active_window();
+        // it is fixed, and until then every keystroke pays a synchronous IMK
+        // XPC round trip to the old host (multi-second main-thread stalls
+        // observed with third-party IMEs). Rebind it on the next main-queue
+        // turn so key events resolve against the newly selected source.
+        fix_current_input_context();
     }
 }
 

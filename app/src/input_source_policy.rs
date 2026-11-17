@@ -16,6 +16,8 @@ use std::time::Duration;
 use settings::macros::implement_setting_for_enum;
 use settings::{Setting, SupportedPlatforms, SyncToCloud};
 use warpui::r#async::Timer;
+#[cfg(target_os = "macos")]
+use warpui::platform::current::fix_current_input_context;
 use warpui::{AppContext, Entity, SingletonEntity, ViewContext, ViewHandle, WindowId};
 
 use crate::pane_group::PaneGroup;
@@ -249,6 +251,15 @@ pub fn on_pane_focused(
     window_id: WindowId,
     ctx: &mut ViewContext<Workspace>,
 ) {
+    // Re-resolve the focused window's input context regardless of the policy:
+    // after any input-source change (policy-driven or the user's own), the TSM
+    // document can stay bound to the previous IME session, making every
+    // keystroke pay a synchronous IMK XPC round trip to that host. Rebinding on
+    // focus keeps plain-layout panes free of that per-key cost even when the
+    // policy itself is disabled.
+    #[cfg(target_os = "macos")]
+    fix_current_input_context();
+
     if !policy_enabled(ctx) {
         return;
     }
