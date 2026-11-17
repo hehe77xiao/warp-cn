@@ -1,20 +1,31 @@
 //! macOS-only policy: manage the keyboard input source on terminal pane activation.
 //!
-//! - Pane title matches the exemption rule: keep/restore that pane's remembered
-//!   input source (snapshot taken when the pane loses focus).
-//! - Pane title doesn't match: force the English keyboard layout; no-op when the
-//!   current source is already English.
+//! - Exempt panes (title matches the exemption rule): always restore that pane's
+//!   remembered input source (snapshot taken when the pane loses focus).
+//! - Non-exempt panes: force the English keyboard layout only when the window
+//!   itself becomes active (returning to Warp from another app), not on in-window
+//!   pane switches. Each forced TIS switch carries a multi-hundred-ms (sometimes
+//!   multi-second, with third-party IMEs) synchronous cost on the main thread,
+//!   so pane switches leaving a non-exempt pane alone keep the current source
+//!   and the round-trip switching between a terminal pane and an exempt pane
+//!   costs one switch instead of two.
+//! - Requests are debounced: only the last requested target within the settle
+//!   window is applied, so rapid pane ping-pongs collapse into a single
+//!   (possibly no-op) switch.
 
 use std::collections::HashMap;
+use std::time::Duration;
 
 use settings::macros::implement_setting_for_enum;
 use settings::{Setting, SupportedPlatforms, SyncToCloud};
-use warpui::{AppContext, Entity, SingletonEntity, ViewHandle, WindowId};
+use warpui::r#async::Timer;
+use warpui::{AppContext, Entity, SingletonEntity, ViewContext, ViewHandle, WindowId};
 
 use crate::pane_group::PaneGroup;
 use crate::pane_group::pane::{PaneConfiguration, PaneId};
 use crate::terminal::TerminalView;
 use crate::terminal::general_settings::{GeneralSettings, GeneralSettingsChangedEvent};
+use crate::workspace::view::Workspace;
 
 /// Built-in English keyboard layout selected whenever the exemption rule doesn't
 /// match. Not user-configurable on purpose: "English" must not be an IME that
@@ -24,6 +35,10 @@ pub const ENGLISH_INPUT_SOURCE_ID: &str = "com.apple.keylayout.ABC";
 /// Bounds the per-pane memory so long-lived sessions with churn don't grow it
 /// without limit.
 const MAX_REMEMBERED_PANES: usize = 512;
+
+/// A requested input-source switch is applied once focus activity has been
+/// quiet for this long, collapsing rapid pane switches.
+const SWITCH_SETTLE: Duration = Duration::from_millis(300);
 
 #[derive(
     Default,
@@ -71,6 +86,15 @@ pub fn title_is_exempt(title: &str, mode: PaneTitleMatchMode, pattern: &str) -> 
     }
 }
 
+/// A debounced input-source switch waiting to be applied. The generation is
+/// captured by the settle timer so stale timers discard instead of applying an
+/// outdated target.
+struct PendingSwitch {
+    target: String,
+    trigger: &'static str,
+    seq: u64,
+}
+
 /// Per-pane input source memory: the source each pane was using when it last
 /// lost focus, plus the last focused pane per window so we know which pane to
 /// snapshot when focus moves.
@@ -78,6 +102,8 @@ pub fn title_is_exempt(title: &str, mode: PaneTitleMatchMode, pattern: &str) -> 
 pub struct InputSourceMemoryModel {
     remembered: HashMap<PaneId, String>,
     last_focused: HashMap<WindowId, PaneId>,
+    pending: Option<PendingSwitch>,
+    switch_seq: u64,
 }
 
 impl Entity for InputSourceMemoryModel {
@@ -107,17 +133,56 @@ fn current_input_source_id(ctx: &AppContext) -> Option<String> {
     ctx.current_input_source_id()
 }
 
-fn select_source_if_needed(ctx: &AppContext, target: &str) {
-    if current_input_source_id(ctx).as_deref() == Some(target) {
-        return;
-    }
-    ctx.select_input_source(target);
-}
-
 fn remember_source(ctx: &mut AppContext, pane_id: PaneId, source_id: &str) {
     InputSourceMemoryModel::handle(ctx).update(ctx, |model, _| {
         model.remember(pane_id, source_id);
     });
+}
+
+/// Queues a switch to `target` after the settle window, replacing any pending
+/// switch to a different target.
+fn request_source_switch(ctx: &mut ViewContext<Workspace>, target: &str, trigger: &'static str) {
+    let seq = InputSourceMemoryModel::handle(ctx).update(ctx, |model, _| {
+        if model.pending.as_ref().is_some_and(|p| p.target == target) {
+            return None;
+        }
+        model.switch_seq += 1;
+        model.pending = Some(PendingSwitch {
+            target: target.to_owned(),
+            trigger,
+            seq: model.switch_seq,
+        });
+        Some(model.switch_seq)
+    });
+    let Some(seq) = seq else { return };
+    ctx.spawn(Timer::after(SWITCH_SETTLE), move |_, _deadline, ctx| {
+        let fired = InputSourceMemoryModel::handle(ctx).update(ctx, |model, _| {
+            match model.pending.take() {
+                Some(p) if p.seq == seq => Some((p.target, p.trigger)),
+                other => {
+                    model.pending = other;
+                    None
+                }
+            }
+        });
+        if let Some((target, trigger)) = fired {
+            perform_switch(ctx, &target, trigger);
+        }
+    });
+}
+
+/// Executes a deferred switch unless the current source already matches, and
+/// logs the request with its trigger so logs show which focus event caused a
+/// (possibly slow) platform-side selection.
+fn perform_switch(ctx: &mut AppContext, target: &str, trigger: &'static str) {
+    let Some(current) = current_input_source_id(ctx) else {
+        return;
+    };
+    if current == target {
+        return;
+    }
+    log::info!("input-source switch requested ({trigger}): {current} -> {target}");
+    ctx.select_input_source(target);
 }
 
 /// Whether any title source for the pane matches the exemption rule. The
@@ -147,8 +212,15 @@ fn exemption_matches(
 }
 
 /// Applies the rule for `pane_id`'s title: restore its remembered source when
-/// exempt, otherwise force English.
-fn apply_for_pane(pane_group: &ViewHandle<PaneGroup>, pane_id: PaneId, ctx: &AppContext) {
+/// exempt; otherwise force English only when `force_non_exempt` (window
+/// activation), leaving in-window pane switches untouched.
+fn apply_for_pane(
+    pane_group: &ViewHandle<PaneGroup>,
+    pane_id: PaneId,
+    force_non_exempt: bool,
+    trigger: &'static str,
+    ctx: &mut ViewContext<Workspace>,
+) {
     let pane_group = pane_group.as_ref(ctx);
     let Some(terminal_view) = pane_group.terminal_view_from_pane_id(pane_id, ctx) else {
         return;
@@ -167,10 +239,10 @@ fn apply_for_pane(pane_group: &ViewHandle<PaneGroup>, pane_id: PaneId, ctx: &App
             .get(&pane_id)
             .cloned();
         if let Some(source_id) = remembered {
-            select_source_if_needed(ctx, &source_id);
+            request_source_switch(ctx, &source_id, trigger);
         }
-    } else {
-        select_source_if_needed(ctx, ENGLISH_INPUT_SOURCE_ID);
+    } else if force_non_exempt {
+        request_source_switch(ctx, ENGLISH_INPUT_SOURCE_ID, trigger);
     }
 }
 
@@ -180,7 +252,7 @@ fn apply_for_pane(pane_group: &ViewHandle<PaneGroup>, pane_id: PaneId, ctx: &App
 pub fn on_pane_focused(
     pane_group: &ViewHandle<PaneGroup>,
     window_id: WindowId,
-    ctx: &mut AppContext,
+    ctx: &mut ViewContext<Workspace>,
 ) {
     if !policy_enabled(ctx) {
         return;
@@ -201,18 +273,19 @@ pub fn on_pane_focused(
         model.last_focused.insert(window_id, focused);
     });
 
-    apply_for_pane(pane_group, focused, ctx);
+    apply_for_pane(pane_group, focused, false, "pane-focused", ctx);
 }
 
 /// Called when this window becomes the active window. No outgoing-pane
 /// snapshot: while Warp was inactive the system input source may have changed
-/// for another app's sake.
-pub fn on_window_activated(pane_group: &ViewHandle<PaneGroup>, ctx: &AppContext) {
+/// for another app's sake, so this is the point where a non-exempt pane is
+/// forced back to English.
+pub fn on_window_activated(pane_group: &ViewHandle<PaneGroup>, ctx: &mut ViewContext<Workspace>) {
     if !policy_enabled(ctx) {
         return;
     }
     let focused = pane_group.as_ref(ctx).focused_pane_id(ctx);
-    apply_for_pane(pane_group, focused, ctx);
+    apply_for_pane(pane_group, focused, true, "window-activated", ctx);
 }
 
 /// Called when this window is losing active-window status: snapshot the

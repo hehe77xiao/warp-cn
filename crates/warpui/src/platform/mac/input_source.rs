@@ -4,10 +4,13 @@
 //! TIS APIs must run on the main thread; selection is dispatched onto the main
 //! queue, queries run on the caller's (already main-thread) context.
 
+use std::cell::RefCell;
+use std::collections::HashMap;
 use std::ffi::c_void;
 use std::ptr::NonNull;
 
 use dispatch2::DispatchQueue;
+use instant::Instant;
 use objc2_core_foundation::{CFArray, CFRetained, CFString, CFType};
 
 // Carbon Text Input Services. See crates/computer_use/src/mac/keycode_cache.rs for
@@ -58,40 +61,86 @@ pub fn select_input_source(source_id: &str) {
     });
 }
 
-/// Enumerates the available sources, matches on ID and selects. Logs failures.
+/// Resolves the cached source handle and selects it, logging the elapsed time:
+/// the blocking XPC wait inside `TISSelectInputSource` (plus AppKit's follow-up
+/// IMK menu rebuild) is exactly what the user perceives as a UI freeze, so the
+/// duration is recorded unconditionally to make future stalls diagnosable from
+/// logs alone.
 fn apply_input_source_selection(source_id: &str) {
-    if current_input_source_id().as_deref() == Some(source_id) {
+    let Some(current) = current_input_source_id() else {
+        return;
+    };
+    if current == source_id {
         return;
     }
+    let Some(source) = cached_input_source(source_id) else {
+        log::warn!("Input source {source_id} not found");
+        return;
+    };
+    let started = Instant::now();
+    let status = unsafe { TISSelectInputSource(&source) };
+    log::info!(
+        "input-source switch {current} -> {source_id} completed in {:?} (status {status})",
+        started.elapsed(),
+    );
+    if status != 0 {
+        log::warn!("Failed to select input source {source_id}");
+        // A removed/renamed source keeps its stale handle cached; drop it so the
+        // next lookup re-enumerates.
+        SOURCE_CACHE.with(|cache| cache.borrow_mut().remove(source_id));
+    }
+}
+
+thread_local! {
+    /// Source ID -> retained TIS handle, filled by one full enumeration.
+    /// Enumerating on every switch costs tens of ms, and handles survive the
+    /// list they came from once retained; an entry is only dropped after a
+    /// failed selection, which triggers a fresh enumeration on next use.
+    static SOURCE_CACHE: RefCell<HashMap<String, CFRetained<CFType>>> = RefCell::new(HashMap::new());
+}
+
+fn cached_input_source(source_id: &str) -> Option<CFRetained<CFType>> {
+    if let Some(handle) = SOURCE_CACHE.with(|cache| cache.borrow().get(source_id).cloned()) {
+        return Some(handle);
+    }
+    populate_source_cache();
+    SOURCE_CACHE.with(|cache| cache.borrow().get(source_id).cloned())
+}
+
+fn populate_source_cache() {
     // Passing NULL properties with include_all=true enumerates every registered
     // input source, including built-in keyboard layouts that are not in the
     // user's enabled IME list.
     let Some(ptr) = (unsafe { TISCreateInputSourceList(std::ptr::null(), 1) }) else {
-        log::warn!("Failed to enumerate input sources while selecting {source_id}");
+        log::warn!("Failed to enumerate input sources while populating the source cache");
         return;
     };
     // TISCreate* follows CF "Create" semantics; wrap in CFRetained to release on drop.
     let list = unsafe { CFRetained::from_raw(ptr) };
 
     let count = unsafe { CFArrayGetCount(&list) };
+    let mut entries: Vec<(String, CFRetained<CFType>)> = Vec::new();
     for index in 0..count {
         let element = unsafe { CFArrayGetValueAtIndex(&list, index) };
         if element.is_null() {
             continue;
         }
-        // Elements are borrowed from the (retained) list.
+        // Elements are borrowed from the (retained) list; retain each handle we
+        // keep so it outlives the list.
         let source = unsafe { &*(element as *const CFType) };
         let property = unsafe { TISGetInputSourceProperty(source, kTISPropertyInputSourceID) };
         if property.is_null() {
             continue;
         }
         let id = unsafe { &*(property as *const CFString) };
-        if id.to_string() == source_id {
-            if unsafe { TISSelectInputSource(source) } != 0 {
-                log::warn!("Failed to select input source {source_id}");
-            }
-            return;
-        }
+        let handle = unsafe { CFRetained::retain(NonNull::from(source)) };
+        entries.push((id.to_string(), handle));
     }
-    log::warn!("Input source {source_id} not found");
+    SOURCE_CACHE.with(|cache| {
+        let mut cache = cache.borrow_mut();
+        cache.clear();
+        for (id, handle) in entries {
+            cache.insert(id, handle);
+        }
+    });
 }
