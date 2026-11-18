@@ -5,8 +5,10 @@ use std::io::Write;
 use std::mem;
 use std::ptr::NonNull;
 use std::sync::Once;
+use std::time::Duration;
 
 use dispatch2::DispatchData;
+use instant::Instant;
 use objc2::rc::Retained;
 use objc2::runtime::ProtocolObject;
 use objc2_foundation::NSString;
@@ -37,6 +39,10 @@ use crate::rendering::{GlyphCache, GlyphRasterBoundsFn, RasterizeGlyphFn, get_be
 
 const METAL_LIB_BYTES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/shaders.metallib"));
 static WRITE_LIB_TO_FILE: Once = Once::new();
+
+/// nextDrawable waits above this indicate compositor backpressure; recorded so
+/// render-side stalls are visible in logs even when no freeze is felt.
+const SLOW_DRAWABLE_ACQUISITION: Duration = Duration::from_millis(50);
 
 /// A structure to help manage a single rendering pass.
 struct RenderPass<'a> {
@@ -1069,9 +1075,21 @@ impl super::super::Renderer for Renderer {
 
         let metal_layer = window.metal_layer();
         let presents_with_transaction = metal_layer.presentsWithTransaction();
-        let drawable = metal_layer
-            .nextDrawable()
-            .expect("CAMetalLayer with allowsNextDrawableTimeout disabled always vends a drawable");
+        // With allowsNextDrawableTimeout enabled the layer returns nil once its
+        // timeout expires, which happens when the drawable pool is starved
+        // (occluded window, compositor backpressure). Waiting unboundedly here
+        // froze all input for seconds at a time, so the frame is dropped
+        // instead and slow acquisitions are logged for diagnosis.
+        let started = Instant::now();
+        let drawable = metal_layer.nextDrawable();
+        let acquisition = started.elapsed();
+        if acquisition >= SLOW_DRAWABLE_ACQUISITION {
+            log::warn!("nextDrawable took {acquisition:?}");
+        }
+        let Some(drawable) = drawable else {
+            log::warn!("nextDrawable timed out after {acquisition:?}; skipping frame");
+            return;
+        };
 
         let ctx = &MetalDrawContext {
             device: metal_device,

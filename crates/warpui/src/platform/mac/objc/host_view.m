@@ -1,8 +1,10 @@
 #import "host_view.h"
 
 #import <Metal/Metal.h>
+#import <QuartzCore/QuartzCore.h>
 
 void warp_view_did_change_backing_properties(WarpHostView *, BOOL);
+void warp_log_slow_key_event(double);
 void warp_view_set_frame_size(WarpHostView *, NSSize, BOOL);
 void warp_update_layer(WarpHostView *);
 BOOL warp_handle_view_event(WarpHostView *, NSEvent *, BOOL);
@@ -159,7 +161,12 @@ void warp_marked_text_cleared(WarpHostView *);
 }
 
 - (void)keyDown:(NSEvent *)event {
+    CFTimeInterval started = CACurrentMediaTime();
     [self keyDownImpl:event];
+    // End-to-end key latency, including the IME round trip inside
+    // interpretKeyEvents. Reported to Rust so slow keystrokes are attributable
+    // from logs alone.
+    warp_log_slow_key_event((CACurrentMediaTime() - started) * 1000.0);
 }
 
 - (BOOL)keyDownImpl:(NSEvent *)event {
@@ -276,7 +283,10 @@ void warp_marked_text_cleared(WarpHostView *);
     CAMetalLayer *layer = [CAMetalLayer layer];
     layer.pixelFormat = MTLPixelFormatBGRA8Unorm;
     layer.device = metalDevice;
-    layer.allowsNextDrawableTimeout = NO;
+    // YES: when the drawable pool is starved (occluded window, compositor
+    // backpressure) nextDrawable returns nil after its timeout instead of
+    // blocking the main thread unbounded; the renderer drops that frame.
+    layer.allowsNextDrawableTimeout = YES;
     layer.autoresizingMask = kCALayerWidthSizable | kCALayerHeightSizable;
     layer.needsDisplayOnBoundsChange = YES;
     layer.presentsWithTransaction = NO;
