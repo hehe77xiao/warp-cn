@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::ffi::c_void;
 use std::fs::File;
 use std::io::Write;
@@ -158,7 +158,21 @@ struct Resources {
 pub struct Renderer {
     resources: Resources,
     command_queue: Retained<ProtocolObject<dyn MTLCommandQueue>>,
+    /// Glyphs to rasterize ahead of first use, so content bursts (rapid
+    /// commands appending fresh text) hit the atlas instead of rasterizing
+    /// synchronously on the main thread mid-frame.
+    prewarm_queue: Option<VecDeque<GlyphKey>>,
+    /// Set once the queue has drained; prevents re-queuing every frame.
+    prewarm_done: bool,
 }
+
+/// ASCII plus characters common in shell output and filenames; each entry is
+/// rasterized for every subpixel variant at the terminal font size.
+const PREWARM_CHARS: &str = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~·—…→";
+
+/// Glyph keys popped from the prewarm queue per frame. Each key rasterizes
+/// once per subpixel variant; sized to keep prewarm frames short.
+const PREWARM_KEYS_PER_FRAME: usize = 24;
 
 impl Renderer {
     pub fn new(
@@ -260,6 +274,8 @@ impl Renderer {
             command_queue: device
                 .newCommandQueue()
                 .expect("device should always vend a command queue"),
+            prewarm_queue: None,
+            prewarm_done: false,
         }
     }
 
@@ -303,11 +319,76 @@ impl Renderer {
 
         Frame::new(scene, &render_pass.encoder, &mut self.resources, ctx).draw();
 
+        self.prewarm_glyphs(scene, ctx);
+
         render_pass.finish_with_capture(
             ctx.drawable_size,
             should_capture,
             presents_with_transaction,
         )
+    }
+
+    /// Queues the common charset for background rasterization at the terminal's
+    /// font size, taken from the first glyph of the scene (terminal glyphs
+    /// dominate every frame).
+    fn ensure_prewarm_queue(&mut self, scene: &Scene, font_cache: &fonts::Cache) {
+        if self.prewarm_queue.is_some() || self.prewarm_done {
+            return;
+        }
+        let Some(glyph) = scene.layers().find_map(|layer| layer.glyphs.first()) else {
+            return;
+        };
+        let font_size = glyph.glyph_key.font_size;
+        let font_id = glyph.glyph_key.font_id;
+        let mut queue = VecDeque::new();
+        for ch in PREWARM_CHARS.chars() {
+            if let Some((glyph_id, font_id)) = font_cache.glyph_for_char(font_id, ch, false) {
+                queue.push_back(GlyphKey {
+                    glyph_id,
+                    font_id,
+                    font_size,
+                });
+            }
+        }
+        log::debug!("glyph prewarm queued {} glyphs at {font_size}", queue.len());
+        self.prewarm_queue = Some(queue);
+    }
+
+    /// Rasterizes a slice of the prewarm queue into the atlas after each frame.
+    /// Costs are amortized over frames so the warmup itself stays invisible.
+    fn prewarm_glyphs(&mut self, scene: &Scene, ctx: &MetalDrawContext) {
+        let Some(queue) = &mut self.prewarm_queue else {
+            return;
+        };
+        let scale = scene.scale_factor();
+        for _ in 0..PREWARM_KEYS_PER_FRAME {
+            let Some(key) = queue.pop_front() else {
+                self.prewarm_queue = None;
+                self.prewarm_done = true;
+                return;
+            };
+            for alignment in SubpixelAlignment::VARIANTS {
+                let _ = self.resources.glyph_cache.get(
+                    key,
+                    scale,
+                    alignment,
+                    &|atlas_size| create_new_texture_atlas(atlas_size, ctx.device),
+                    &insert_glyph_into_texture,
+                    &|glyph_key, scale, alignment| {
+                        ctx.glyph_raster_bounds(glyph_key, scale, alignment)
+                    },
+                    &|glyph_key, scale, subpixel_alignment, glyph_config, format| {
+                        ctx.rasterize_glyph(
+                            glyph_key,
+                            scale,
+                            subpixel_alignment,
+                            glyph_config,
+                            format,
+                        )
+                    },
+                );
+            }
+        }
     }
 }
 
@@ -1061,6 +1142,7 @@ impl MetalDrawContext<'_> {
 
 impl super::super::Renderer for Renderer {
     fn render(&mut self, scene: &Scene, window: &WindowState, font_cache: &fonts::Cache) {
+        self.ensure_prewarm_queue(scene, font_cache);
         // SAFETY: `render` is called via `warp_update_layer`, which is only be invoked for
         // windows created via Window::open() and always sets a non-`None` device.
         #[allow(irrefutable_let_patterns)]

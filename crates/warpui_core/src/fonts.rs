@@ -168,6 +168,10 @@ impl SubpixelAlignment {
     /// The number of subdivisions to slice a pixel into.
     const STEPS: u8 = 3;
 
+    /// All quantized variants, for callers that need to enumerate them (glyph
+    /// prewarming must cover every alignment a position may quantize to).
+    pub const VARIANTS: [Self; (Self::STEPS) as usize] = [Self(0), Self(1), Self(2)];
+
     /// Quantizes the horizontal component of the provided position to the
     /// nearest subpixel position, where `Self::STEPS` is the number of possible
     /// subpixel positions.
