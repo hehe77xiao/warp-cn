@@ -1,10 +1,10 @@
 use std::fmt::Debug;
 use std::iter::zip;
 
+use cloud_object_models::Argument;
 use warpui::App;
 
 use super::ArgumentsState;
-use cloud_object_models::Argument;
 
 fn assert_vector_eq<T>(vector: Vec<T>, expected_vector: &Vec<T>)
 where

@@ -477,10 +477,7 @@ impl TabData {
         menu_items
     }
 
-    fn session_sharing_menu_items(
-        &self,
-        ctx: &AppContext,
-    ) -> Vec<MenuItem<WorkspaceAction>> {
+    fn session_sharing_menu_items(&self, ctx: &AppContext) -> Vec<MenuItem<WorkspaceAction>> {
         let mut menu_items = vec![];
 
         if FeatureFlag::CreatingSharedSessions.is_enabled()

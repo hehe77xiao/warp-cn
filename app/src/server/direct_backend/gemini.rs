@@ -13,19 +13,17 @@ use async_trait::async_trait;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
-use crate::ai_assistant::{
-    AIGeneratedCommand, GenerateCommandsFromNaturalLanguageError, requests::GenerateDialogueResult,
-    utils::TranscriptPart,
-};
-use crate::server::server_api::generated_command_metadata::{
-    GeneratedCommandMetadata, GeneratedCommandMetadataError,
-};
-
 use super::common::{
     COMMANDS_SYSTEM_PROMPT, DIALOGUE_SYSTEM_PROMPT, METADATA_SYSTEM_PROMPT, api_url,
     byok_unlimited_request_limit, parse_commands_payload, parse_metadata_payload, truncate_for_log,
 };
 use super::{LlmBackend, ResolvedProvider};
+use crate::ai_assistant::requests::GenerateDialogueResult;
+use crate::ai_assistant::utils::TranscriptPart;
+use crate::ai_assistant::{AIGeneratedCommand, GenerateCommandsFromNaturalLanguageError};
+use crate::server::server_api::generated_command_metadata::{
+    GeneratedCommandMetadata, GeneratedCommandMetadataError,
+};
 
 pub struct GeminiBackend {
     provider: ResolvedProvider,

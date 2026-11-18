@@ -60,6 +60,7 @@ use crate::settings::import::model::TerminalType;
 use crate::settings::warp_drive_settings::DriveSortOrder;
 use crate::settings_view::TeamsInviteOption;
 use crate::tab::TabTelemetryAction;
+use crate::terminal::CLIAgent;
 use crate::terminal::block_list_viewport::InputMode;
 use crate::terminal::cli_agent_sessions::{CLIAgentInputEntrypoint, CLIAgentRichInputCloseReason};
 use crate::terminal::input::TelemetryInputSuggestionsMode;
@@ -76,7 +77,6 @@ use crate::terminal::view::{
     BlockEntity, BlockSelectionDetails, NotificationsDiscoveryBannerAction,
     NotificationsErrorBannerAction, NotificationsTrigger, PromptPart,
 };
-use crate::terminal::CLIAgent;
 use crate::tips::WelcomeTipFeature;
 #[cfg(feature = "local_fs")]
 use crate::util::file::external_editor::settings::EditorLayout;

@@ -6,13 +6,13 @@
 
 use std::path::PathBuf;
 use std::process::Stdio;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use anyhow::anyhow;
 use async_trait::async_trait;
 use regex::Regex;
-use rmcp::{transport::ConfigureCommandExt as _, ServiceExt as _};
+use rmcp::{ServiceExt as _, transport::ConfigureCommandExt as _};
 use serde_json::json;
 use tokio::io::AsyncBufReadExt as _;
 use tokio::sync::{Mutex, OnceCell};

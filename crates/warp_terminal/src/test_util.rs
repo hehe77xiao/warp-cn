@@ -9,9 +9,8 @@ use crate::model::ObfuscateSecrets;
 use crate::model::ansi::{self, Handler};
 use crate::model::blockgrid::BlockGrid;
 use crate::model::cell::Flags;
-use crate::model::grid::Dimensions as _;
-use crate::model::grid::char_width;
 use crate::model::grid::grid_handler::PerformResetGridChecks;
+use crate::model::grid::{Dimensions as _, char_width};
 use crate::model::image_map::StoredImageMetadata;
 use crate::model::index::{VisiblePoint, VisibleRow};
 use crate::model::kitty::{

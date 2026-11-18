@@ -1,6 +1,6 @@
 use thousands::Separable;
-use warp_i18n::t;
 use warp_graphql::billing::AddonCreditsOption;
+use warp_i18n::t;
 
 use crate::settings::UsageDisplayUnit;
 

@@ -35,8 +35,8 @@ use warp_util::path::convert_wsl_to_windows_host_path;
 use warp_util::remote_path::RemotePath;
 use warpui::r#async::SpawnedFutureHandle;
 use warpui::elements::{
-    ChildView, CrossAxisAlignment, DispatchEventResult, Element, EventHandler, Flex,
-    MainAxisSize, ParentElement, Shrinkable, Stack,
+    ChildView, CrossAxisAlignment, DispatchEventResult, Element, EventHandler, Flex, MainAxisSize,
+    ParentElement, Shrinkable, Stack,
 };
 use warpui::keymap::{BindingDescription, Context, EditableBinding, FixedBinding};
 use warpui::notification::NotificationSendError;
@@ -128,9 +128,7 @@ use crate::terminal::shared_session::render_util::ParticipantAvatarParams;
 use crate::terminal::shared_session::role_change_modal::{
     RoleChangeCloseSource, RoleChangeModal, RoleChangeModalEvent,
 };
-use crate::terminal::shared_session::{
-    self, IsSharedSessionCreator, SharedSessionActionSource,
-};
+use crate::terminal::shared_session::{self, IsSharedSessionCreator, SharedSessionActionSource};
 use crate::terminal::view::inline_banner::{
     ZeroStatePromptSuggestionTriggeredFrom, ZeroStatePromptSuggestionType,
 };
@@ -143,8 +141,8 @@ use crate::terminal::view::{
     LeftPanelTargetView, SSHSplitReconnectPlan, SyncEvent, TerminalViewState,
 };
 use crate::terminal::{
-    MockTerminalManager, ShellLaunchData, ShellLaunchState,
-    TerminalManager, TerminalModel, TerminalView,
+    MockTerminalManager, ShellLaunchData, ShellLaunchState, TerminalManager, TerminalModel,
+    TerminalView,
 };
 
 use crate::cloud_object::workflow_content::{
@@ -833,7 +831,6 @@ pub struct PaneGroup {
     server_api: Arc<ServerApi>,
 
     /// The terminal session with an open share block modal. Only terminal panes use the share block modal.
-
     // We are only holding one instance of share modal view in the pane group and
     // update it with the correct terminal model and size info when triggered by
     // the context menu event.
@@ -2514,8 +2511,6 @@ impl PaneGroup {
         most_recent_state
     }
 
-
-
     /// Closes the share session modal if it is open. Does nothing otherwise. Does not change
     /// which element is focused.
 
@@ -3660,7 +3655,6 @@ impl PaneGroup {
             PaneGroupFocusEvent::FocusedPaneMaximizedChanged => ctx.notify(),
         }
     }
-
 
     /// Used to add a new pane but not splitting panes.
     pub fn add_terminal_pane(

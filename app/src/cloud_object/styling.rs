@@ -5,6 +5,7 @@ use warp_core::ui::appearance::Appearance;
 use warp_core::ui::color::ContrastingColor;
 use warp_core::ui::color::contrast::MinimumAllowedContrast;
 use warp_core::ui::theme::Fill;
+use warpui::{AppContext, Element, SingletonEntity as _};
 
 use crate::cloud_object::model::persistence::CloudModel;
 use crate::cloud_object::{
@@ -12,8 +13,6 @@ use crate::cloud_object::{
 };
 use crate::ui_components::blended_colors;
 use crate::ui_components::icons::Icon;
-use warpui::SingletonEntity as _;
-use warpui::{AppContext, Element};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum DriveObjectType {

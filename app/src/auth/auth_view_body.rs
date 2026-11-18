@@ -4,6 +4,7 @@ use warp_core::features::FeatureFlag;
 use warp_core::ui::appearance::DEFAULT_COMMAND_PALETTE_FONT_SIZE;
 use warp_core::ui::builder::UiBuilder;
 use warp_errors::report_error;
+use warp_i18n::t;
 use warpui::accessibility::{AccessibilityContent, WarpA11yRole};
 use warpui::clipboard::ClipboardContent;
 use warpui::color::ColorU;
@@ -11,7 +12,6 @@ use warpui::elements::{
     Align, Border, Container, CornerRadius, CrossAxisAlignment, Dismiss, Fill, Flex,
     MainAxisAlignment, MainAxisSize, MouseStateHandle, ParentElement, Radius, Stack,
 };
-use warp_i18n::t;
 use warpui::fonts::Weight;
 use warpui::keymap::FixedBinding;
 use warpui::ui_components::components::{Coords, UiComponent, UiComponentStyles};
@@ -455,7 +455,8 @@ impl AuthViewBody {
         let on_click_action = if is_anonymous
             && matches!(
                 self.variant,
-                AuthViewVariant::RequireLoginCloseable | AuthViewVariant::HitDriveObjectLimitCloseable
+                AuthViewVariant::RequireLoginCloseable
+                    | AuthViewVariant::HitDriveObjectLimitCloseable
             ) {
             AuthViewBodyAction::SignupAnonymousUser
         } else {
@@ -631,7 +632,8 @@ impl AuthViewBody {
 
         let text = match self.variant {
             AuthViewVariant::Initial => t!("dialog-auth-welcome"),
-            AuthViewVariant::RequireLoginCloseable | AuthViewVariant::HitDriveObjectLimitCloseable => {
+            AuthViewVariant::RequireLoginCloseable
+            | AuthViewVariant::HitDriveObjectLimitCloseable => {
                 t!("dialog-auth-sign-up-for-warp")
             }
         };
@@ -720,7 +722,8 @@ impl AuthViewBody {
                     vec![]
                 }
             }
-            AuthViewVariant::RequireLoginCloseable | AuthViewVariant::HitDriveObjectLimitCloseable => {
+            AuthViewVariant::RequireLoginCloseable
+            | AuthViewVariant::HitDriveObjectLimitCloseable => {
                 vec![logo, header, force_login_disclaimer, sign_up_button]
             }
         }

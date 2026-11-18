@@ -2,11 +2,9 @@ use std::borrow::Cow;
 
 use warp_core::ui::appearance::Appearance;
 use warp_i18n::t;
-use warpui::{
-    AppContext, SingletonEntity,
-    color::ColorU,
-    ui_components::components::{UiComponent, UiComponentStyles},
-};
+use warpui::color::ColorU;
+use warpui::ui_components::components::{UiComponent, UiComponentStyles};
+use warpui::{AppContext, SingletonEntity};
 
 use crate::cloud_object::model::persistence::CloudModel;
 use crate::server::ids::ServerId;

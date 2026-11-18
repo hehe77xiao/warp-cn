@@ -1,9 +1,9 @@
+use cloud_object_models::CloudFolder;
 use warpui::AppContext;
 
 use super::{CloudObject, Space};
 use crate::cloud_object::CloudObjectTypeAndId;
 use crate::ui_components::breadcrumb::Breadcrumb;
-use cloud_object_models::CloudFolder;
 
 // Encapsulates an object that can contain other objects, and keeps
 // information necessary to show breadcrumbs.

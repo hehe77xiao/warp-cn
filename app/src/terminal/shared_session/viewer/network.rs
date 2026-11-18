@@ -970,11 +970,6 @@ impl Network {
         self.send_message_to_server(UpstreamMessage::SendControlAction(action));
     }
 
-
-
-
-
-
     pub fn send_user_role_update(&mut self, user_uid: UserUid, role: Role) {
         self.send_message_to_server(UpstreamMessage::UpdateUserRole {
             user_uid: user_uid.as_string(),

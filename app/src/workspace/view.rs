@@ -241,12 +241,11 @@ use crate::autoupdate::{
 use crate::banner::BannerState;
 use crate::changelog_model::{ChangelogModel, ChangelogRequestType, Event as ChangelogEvent};
 use crate::channel::{Channel, ChannelState};
-use crate::cloud_object::CloudObjectTypeAndId;
-use crate::cloud_object::Owner;
 use crate::cloud_object::export::ExportManager;
 use crate::cloud_object::model::persistence::CloudModel;
 use crate::cloud_object::model::workflow_model::CloudWorkflow;
 use crate::cloud_object::toast_message::CloudObjectToastMessage;
+use crate::cloud_object::{CloudObjectTypeAndId, Owner};
 use crate::code::buffer_location::LocalOrRemotePath;
 use crate::code::editor::{add_color, remove_color};
 #[cfg(feature = "local_fs")]

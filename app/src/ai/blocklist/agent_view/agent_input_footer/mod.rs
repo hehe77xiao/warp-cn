@@ -3,8 +3,6 @@ pub mod editor;
 mod environment_selector;
 pub mod toolbar_item;
 
-use warp_i18n::t;
-
 #[cfg(not(target_family = "wasm"))]
 use std::env;
 #[cfg(not(target_family = "wasm"))]
@@ -38,6 +36,7 @@ use warp_core::ui::theme::{AnsiColorIdentifier, Fill};
 #[cfg(any(not(target_family = "wasm"), feature = "voice_input"))]
 use warp_errors::report_error;
 use warp_errors::report_if_error;
+use warp_i18n::t;
 use warpui::r#async::{SpawnedFutureHandle, Timer};
 use warpui::elements::{
     ChildAnchor, ChildView, Clipped, ConstrainedBox, Container, CornerRadius, CrossAxisAlignment,

@@ -3,6 +3,7 @@ use std::ops::Range;
 use std::sync::Arc;
 
 use chrono::Utc;
+use cloud_object_models::Workflow;
 use futures::prelude::*;
 use itertools::Itertools;
 use markdown_parser::markdown_parser::RUNNABLE_BLOCK_MARKDOWN_LANG;
@@ -34,8 +35,10 @@ use super::NotebooksEditorModel;
 use crate::appearance::Appearance;
 use crate::auth::AuthStateProvider;
 use crate::cloud_object::model::persistence::CloudModel;
-use crate::cloud_object::{CloudWorkflow, CloudWorkflowModel, WorkflowId};
-use crate::cloud_object::{Owner, Revision, ServerMetadata, ServerPermissions, ServerWorkflow};
+use crate::cloud_object::{
+    CloudWorkflow, CloudWorkflowModel, Owner, Revision, ServerMetadata, ServerPermissions,
+    ServerWorkflow, WorkflowId,
+};
 use crate::editor::InteractionState;
 use crate::notebooks::editor::keys::NotebookKeybindings;
 use crate::notebooks::editor::model::DEBOUNCED_RESIZE_PERIOD;
@@ -53,7 +56,6 @@ use crate::terminal::keys::TerminalKeybindings;
 use crate::test_util::settings::initialize_settings_for_tests;
 use crate::workspace::ActiveSession;
 use crate::{GlobalResourceHandles, GlobalResourceHandlesProvider, UserWorkspaces};
-use cloud_object_models::Workflow;
 
 /// Container for a [`RichTextEditorView`] in unit tests.
 struct TestView {

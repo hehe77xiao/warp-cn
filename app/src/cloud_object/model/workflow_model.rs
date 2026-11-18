@@ -4,10 +4,10 @@ use anyhow::Result;
 use async_trait::async_trait;
 pub use cloud_object_models::{CloudWorkflow, CloudWorkflowModel, WorkflowId};
 
-use crate::cloud_object::CloudObjectTypeAndId;
 use crate::cloud_object::{
-    CloudModelType, CloudObjectEventEntrypoint, CloudObjectUpsertParams, CreateCloudObjectResult,
-    CreateObjectRequest, GenericServerObject, ObjectType, Revision, UpdateCloudObjectResult,
+    CloudModelType, CloudObjectEventEntrypoint, CloudObjectTypeAndId, CloudObjectUpsertParams,
+    CreateCloudObjectResult, CreateObjectRequest, GenericServerObject, ObjectType, Revision,
+    UpdateCloudObjectResult,
 };
 use crate::persistence::ModelEvent;
 use crate::server::cloud_objects::update_manager::InitiatedBy;

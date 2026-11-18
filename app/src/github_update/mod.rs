@@ -12,13 +12,13 @@
 //! Auto-update path is macOS-only; on other targets the install module is
 //! not compiled.
 
-use anyhow::{anyhow, bail, Context as _, Result};
+use anyhow::{Context as _, Result, anyhow, bail};
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::io::{Read as _, Write as _};
 use std::path::Path;
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering as AtomicOrdering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering as AtomicOrdering};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use warp_core::channel::ChannelState;
 use warp_core::paths;
@@ -29,7 +29,7 @@ mod auto_check;
 #[cfg(target_os = "macos")]
 mod install;
 
-pub(crate) use auto_check::{register as register_auto_check, UpdateNotificationModel};
+pub(crate) use auto_check::{UpdateNotificationModel, register as register_auto_check};
 
 /// Unix-seconds timestamp of the most recent terminal check
 /// (UpToDate / UpdateAvailable / Error). `None` until the first check

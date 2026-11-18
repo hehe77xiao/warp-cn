@@ -1128,8 +1128,8 @@ impl AgentManagementView {
                     } else {
                         None
                     };
-                    let action_buttons_view = self
-                        .create_action_buttons_view(card.action_buttons_config, ctx);
+                    let action_buttons_view =
+                        self.create_action_buttons_view(card.action_buttons_config, ctx);
 
                     new_items.push(CardState {
                         hover_state: MouseStateHandle::default(),

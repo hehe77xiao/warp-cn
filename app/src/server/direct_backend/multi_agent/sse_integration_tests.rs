@@ -327,7 +327,11 @@ async fn openai_re_asks_once_after_a_malformed_tool_call() {
         .create_async()
         .await;
 
-    let p = provider(DirectProviderKind::OpenAiCompatible, server.url(), "gpt-test");
+    let p = provider(
+        DirectProviderKind::OpenAiCompatible,
+        server.url(),
+        "gpt-test",
+    );
     let stream = super::call_streaming_with_reask(p, vec![user_turn("read the files")], None);
     let chunks: Vec<_> = collect_chunks(stream)
         .await
@@ -617,7 +621,11 @@ async fn anthropic_skips_malformed_chunk_and_recovers() {
             _ => None,
         })
         .collect();
-    assert_eq!(texts, vec!["recovered"], "malformed event was skipped, good event survived");
+    assert_eq!(
+        texts,
+        vec!["recovered"],
+        "malformed event was skipped, good event survived"
+    );
     assert!(
         chunks
             .iter()
@@ -645,8 +653,7 @@ async fn adapter_emits_append_then_finished_for_text_stream() {
     let chunk_stream = super::anthropic_driver::call_streaming(&p, &[user_turn("hi")], None)
         .await
         .expect("init");
-    let event_stream =
-        super::adapter::adapt(chunk_stream, "task-1".into(), "req-1".into());
+    let event_stream = super::adapter::adapt(chunk_stream, "task-1".into(), "req-1".into());
     let events: Vec<api::ResponseEvent> = event_stream
         .collect::<Vec<_>>()
         .await

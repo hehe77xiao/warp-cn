@@ -41,8 +41,9 @@ use crate::server::telemetry::CodePanelsFileOpenEntrypoint;
 use crate::server::telemetry::FileTreeSource;
 use crate::settings::AISettings;
 use crate::settings_view::keybindings::{KeybindingChangedEvent, KeybindingChangedNotifier};
-use crate::terminal::resizable_data::{MAX_PANEL_WIDTH_RATIO, MIN_PANEL_WIDTH};
-use crate::terminal::resizable_data::{ModalType, ResizableData};
+use crate::terminal::resizable_data::{
+    MAX_PANEL_WIDTH_RATIO, MIN_PANEL_WIDTH, ModalType, ResizableData,
+};
 use crate::ui_components::buttons::{icon_button, icon_button_with_color};
 use crate::ui_components::icons;
 use crate::util::bindings::keybinding_name_to_display_string;

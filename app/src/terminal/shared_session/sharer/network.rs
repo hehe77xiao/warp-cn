@@ -697,9 +697,6 @@ impl Network {
         self.send_message_to_server(message);
     }
 
-
-
-
     pub fn send_make_all_participants_readers(&mut self, reason: RoleUpdateReason) {
         let message = UpstreamMessage::UpdateAllRolesToReader { reason };
         self.send_message_to_server(message);
@@ -825,8 +822,6 @@ impl Network {
         };
         self.send_message_to_server(message);
     }
-
-
 
     pub fn send_universal_developer_input_context_update(
         &mut self,

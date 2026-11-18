@@ -4,14 +4,12 @@ use std::path::PathBuf;
 
 use anyhow::{Result, anyhow};
 use async_trait::async_trait;
+use cloud_object_models::EnvVarValue;
 use command::r#async::Command;
 use itertools::Itertools as _;
 
-use super::shared::shell_escape_single_quotes;
+use super::shared::{serialize_variables_for_shell, shell_escape_single_quotes};
 use super::{CommandExecutor, CommandOutput, ExecuteCommandOptions};
-use cloud_object_models::EnvVarValue;
-
-use super::shared::serialize_variables_for_shell;
 use crate::terminal::shell::Shell;
 
 /// `CommandExecutor` implementation that executes the given `command` in a forked process

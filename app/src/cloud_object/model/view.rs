@@ -2,6 +2,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 
 use chrono::{Duration, Utc};
+use cloud_object_models::CloudFolder;
 use warp_graphql::scalars::time::ServerTimestamp;
 use warpui::{AppContext, Entity, ModelContext, ModelHandle, SingletonEntity};
 
@@ -15,7 +16,6 @@ use crate::server::cloud_objects::update_manager::{
 };
 use crate::server::ids::{ObjectUid, SyncId};
 use crate::workspaces::user_profiles::UserProfiles;
-use cloud_object_models::CloudFolder;
 
 pub const EDITOR_TIMEOUT_DURATION_MINUTES: i64 = 15;
 

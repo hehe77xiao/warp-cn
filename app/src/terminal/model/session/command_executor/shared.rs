@@ -1,15 +1,13 @@
+use async_channel::Sender;
 use cloud_object_models::EnvVarValue;
 use itertools::Itertools as _;
-use warp_util::path::ShellFamily;
-
-use async_channel::Sender;
 pub use warp_terminal::shell::{shell_escape_single_quotes, shell_quote_arg};
-
-use crate::terminal::shell::ShellType;
+use warp_util::path::ShellFamily;
 
 use crate::terminal::model::session::command_executor::{
     InBandCommand, InBandCommandCancelledEvent,
 };
+use crate::terminal::shell::ShellType;
 
 /// Set of events sent by command executors.
 pub enum ExecutorCommandEvent {

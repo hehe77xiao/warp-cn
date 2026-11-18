@@ -101,7 +101,6 @@ pub(super) fn deferred_repositories(
     repositories.into_iter().map(source_repo).collect()
 }
 
-
 pub(super) fn providers(config: Option<CloudProviderClientConfigs>) -> ProvidersConfig {
     let Some(config) = config else {
         return ProvidersConfig::default();

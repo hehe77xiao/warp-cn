@@ -18,6 +18,7 @@ use warp_core::features::FeatureFlag;
 use warp_core::ui::theme::Fill;
 use warp_core::ui::theme::color::internal_colors;
 use warp_core::{HostId, send_telemetry_from_ctx};
+use warp_i18n::t;
 use warp_util::path::LineAndColumnArg;
 use warp_util::standardized_path::StandardizedPath;
 use warpui::clipboard::ClipboardContent;
@@ -61,7 +62,6 @@ use crate::util::openable_file_type::{
 use crate::util::openable_file_type::{
     resolve_file_target_to_open_in_warp, resolve_file_target_with_editor_choice,
 };
-use warp_i18n::t;
 
 mod editing;
 mod render;

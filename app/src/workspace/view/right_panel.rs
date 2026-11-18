@@ -45,8 +45,9 @@ use crate::settings::{AISettings, AISettingsChangedEvent};
 use crate::terminal::CLIAgent;
 use crate::terminal::cli_agent_sessions::CLIAgentSessionsModel;
 use crate::terminal::input::MenuPositioning;
-use crate::terminal::resizable_data::{MAX_PANEL_WIDTH_RATIO, MIN_PANEL_WIDTH};
-use crate::terminal::resizable_data::{ModalType, ResizableData};
+use crate::terminal::resizable_data::{
+    MAX_PANEL_WIDTH_RATIO, MIN_PANEL_WIDTH, ModalType, ResizableData,
+};
 use crate::terminal::view::TerminalView;
 use crate::ui_components::buttons::icon_button_with_color;
 use crate::ui_components::icons;

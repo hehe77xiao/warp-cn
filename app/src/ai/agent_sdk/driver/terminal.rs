@@ -361,8 +361,6 @@ impl TerminalDriver {
         self.terminal_view.update(ctx, f);
     }
 
-
-
     /// Submit `text` to the active CLI agent on the terminal PTY using the
     /// agent-specific submission strategy.
     ///

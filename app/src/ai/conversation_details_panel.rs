@@ -576,7 +576,6 @@ impl ConversationDetailsData {
             fetch_error,
         }
     }
-
 }
 
 /// Events emitted by the ConversationDetailsPanel.

@@ -25,10 +25,9 @@ use async_trait::async_trait;
 use warp_core::features::FeatureFlag;
 use warpui::{AppContext, SingletonEntity};
 
-use crate::ai_assistant::{
-    AIGeneratedCommand, GenerateCommandsFromNaturalLanguageError, requests::GenerateDialogueResult,
-    utils::TranscriptPart,
-};
+use crate::ai_assistant::requests::GenerateDialogueResult;
+use crate::ai_assistant::utils::TranscriptPart;
+use crate::ai_assistant::{AIGeneratedCommand, GenerateCommandsFromNaturalLanguageError};
 use crate::server::server_api::generated_command_metadata::{
     GeneratedCommandMetadata, GeneratedCommandMetadataError,
 };

@@ -12,7 +12,7 @@
 
 #![cfg_attr(not(test), allow(dead_code))]
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{Context, Result, anyhow, bail};
 use computer_use::{
     Action, Key, MouseButton, ScreenshotParams, ScrollDirection, ScrollDistance, Vector2I,
 };

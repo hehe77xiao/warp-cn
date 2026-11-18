@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
+use cloud_object_models::{Argument, Workflow};
 use lazy_static::lazy_static;
 
 use super::{compute_workflow_display_data, compute_workflow_display_data_for_history_command};
-use cloud_object_models::{Argument, Workflow};
 
 lazy_static! {
     static ref WORKFLOW: Workflow = Workflow::Command {

@@ -1,4 +1,3 @@
-use serial_test::serial;
 #[cfg(not(target_family = "wasm"))]
 use std::cell::RefCell;
 #[cfg(not(target_family = "wasm"))]
@@ -6,6 +5,7 @@ use std::rc::Rc;
 #[cfg(not(target_family = "wasm"))]
 use std::sync::atomic::{AtomicBool, Ordering as AtomicOrdering};
 
+use serial_test::serial;
 #[cfg(not(target_family = "wasm"))]
 use warpui::App;
 

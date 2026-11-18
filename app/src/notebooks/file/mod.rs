@@ -37,6 +37,11 @@ use super::link::{NotebookLinks, SessionSource};
 use super::telemetry::NotebookTelemetryAction;
 use super::{NotebookLocation, styles};
 use crate::appearance::Appearance;
+// `renders_in_warp_notebook_viewer` is only consumed by non-wasm views
+// (`code::view` resolves to `view.rs` off-wasm and to `wasm.rs` on-wasm, and the
+// tooltips helper is `local_fs`-gated). Gate the re-export to match, otherwise it
+// is flagged as an unused import on the wasm build where those consumers are absent.
+use crate::cloud_object::workflow_content::{WorkflowSource, WorkflowType};
 #[cfg(feature = "local_fs")]
 use crate::code::editor_management::CodeSource;
 use crate::editor::InteractionState;
@@ -57,11 +62,6 @@ use crate::ui_components::icons::Icon;
 use crate::util::bindings::BindingDescriptionFluentExt;
 #[cfg(feature = "local_fs")]
 use crate::util::openable_file_type::FileTarget;
-// `renders_in_warp_notebook_viewer` is only consumed by non-wasm views
-// (`code::view` resolves to `view.rs` off-wasm and to `wasm.rs` on-wasm, and the
-// tooltips helper is `local_fs`-gated). Gate the re-export to match, otherwise it
-// is flagged as an unused import on the wasm build where those consumers are absent.
-use crate::cloud_object::workflow_content::{WorkflowSource, WorkflowType};
 pub use crate::util::openable_file_type::is_markdown_file;
 #[cfg(not(target_family = "wasm"))]
 pub use crate::util::openable_file_type::renders_in_warp_notebook_viewer;

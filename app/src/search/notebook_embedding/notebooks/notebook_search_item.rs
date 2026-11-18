@@ -9,8 +9,7 @@ use warpui::{AppContext, Element, SingletonEntity};
 
 use crate::appearance::Appearance;
 use crate::cloud_object::CloudObject;
-use crate::cloud_object::styling::DriveObjectType;
-use crate::cloud_object::styling::warp_drive_icon_color;
+use crate::cloud_object::styling::{DriveObjectType, warp_drive_icon_color};
 use crate::notebooks::CloudNotebook;
 use crate::search::item::{IconLocation, SearchItem};
 use crate::search::notebook_embedding::embedded_fuzzy_match::FuzzyMatchEmbeddedObjectResult;

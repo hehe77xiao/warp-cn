@@ -221,8 +221,9 @@ impl CancellationReason {
             | CancellationReason::Reverted => CancellationOutcome::Succeeded,
             // The shell died under the agent; a dedicated path finalizes this as a
             // terminal `Error`, so the cancellation machinery must not stamp a status.
-            CancellationReason::AgentExitedShell
-            | CancellationReason::TerminalSessionLost => CancellationOutcome::FinalizedExternally,
+            CancellationReason::AgentExitedShell | CancellationReason::TerminalSessionLost => {
+                CancellationOutcome::FinalizedExternally
+            }
             CancellationReason::ManuallyCancelled
             | CancellationReason::AutomaticCloudHandoff
             | CancellationReason::UserCommandExecuted

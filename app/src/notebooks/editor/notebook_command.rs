@@ -4,6 +4,7 @@ use std::ops::Range;
 use std::sync::Arc;
 
 use async_channel::Sender;
+use cloud_object_models::Workflow;
 use itertools::Itertools;
 use lazy_static::lazy_static;
 use markdown_parser::markdown_parser::CODE_BLOCK_DEFAULT_MARKDOWN_LANG;
@@ -69,7 +70,6 @@ use crate::util::color::{ContrastingColor, MinimumAllowedContrast};
 use crate::view_components::Dropdown;
 use crate::view_components::dropdown::DropdownAction;
 use crate::workspace::WorkspaceAction;
-use cloud_object_models::Workflow;
 
 lazy_static! {
     static ref SUPPORTED_LANGUAGES: &'static [&'static str] = &[

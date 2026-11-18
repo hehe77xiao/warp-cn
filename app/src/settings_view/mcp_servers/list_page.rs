@@ -42,9 +42,8 @@ use crate::ai::mcp::{
     file_based_manager::FileBasedMCPManagerEvent,
 };
 use crate::appearance::Appearance;
-use crate::cloud_object::CloudObjectTypeAndId;
 use crate::cloud_object::model::persistence::{CloudModel, CloudModelEvent};
-use crate::cloud_object::{GenericStringObjectFormat, JsonObjectType};
+use crate::cloud_object::{CloudObjectTypeAndId, GenericStringObjectFormat, JsonObjectType};
 use crate::editor::{
     EditorView, PropagateAndNoOpNavigationKeys, SingleLineEditorOptions, TextOptions,
 };

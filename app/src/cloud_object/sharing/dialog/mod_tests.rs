@@ -1,12 +1,12 @@
+use cloud_object_models::Workflow;
 use warpui::{App, SingletonEntity, TypedActionView, ViewHandle};
 
 use super::{SharingDialog, SharingDialogAction};
 use crate::auth::UserUid;
-use crate::cloud_object::Owner;
 use crate::cloud_object::model::persistence::CloudModel;
 use crate::cloud_object::model::view::CloudViewModel;
 use crate::cloud_object::sharing::{ShareableObject, SharingAccessLevel};
-use crate::cloud_object::{CloudWorkflow, CloudWorkflowModel};
+use crate::cloud_object::{CloudWorkflow, CloudWorkflowModel, Owner};
 use crate::server::ids::{ClientId, ServerId, SyncId};
 use crate::test_util::terminal::{
     add_window_with_id_and_terminal, initialize_app_for_terminal_view,
@@ -17,7 +17,6 @@ use crate::workspaces::user_workspaces::UserWorkspaces;
 use crate::workspaces::workspace::{
     EnforceableSetting, TeamLinkSharingSettings, TeamSettings, Workspace, WorkspaceSettings,
 };
-use cloud_object_models::Workflow;
 
 fn team_with_link_sharing(uid: i64, name: &str, permitted: bool) -> Team {
     let permission = EnforceableSetting {

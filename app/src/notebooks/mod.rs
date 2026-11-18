@@ -13,10 +13,10 @@ pub use cloud_object_models::{CloudNotebook, CloudNotebookModel, NotebookId, Ser
 use serde::{Deserialize, Serialize};
 use warpui::AppContext;
 
-use crate::cloud_object::CloudObjectTypeAndId;
 use crate::cloud_object::{
-    CloudModelType, CloudObjectEventEntrypoint, CloudObjectUpsertParams, CreateCloudObjectResult,
-    CreateObjectRequest, GenericServerObject, ObjectType, Owner, Revision, UpdateCloudObjectResult,
+    CloudModelType, CloudObjectEventEntrypoint, CloudObjectTypeAndId, CloudObjectUpsertParams,
+    CreateCloudObjectResult, CreateObjectRequest, GenericServerObject, ObjectType, Owner, Revision,
+    UpdateCloudObjectResult,
 };
 use crate::persistence::ModelEvent;
 use crate::server::cloud_objects::update_manager::InitiatedBy;

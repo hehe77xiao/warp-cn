@@ -1,7 +1,5 @@
 use warp::features::FeatureFlag;
-use warp::integration_testing::cloud_object::{
-    assert_notebook_metadata_revision,
-};
+use warp::integration_testing::cloud_object::assert_notebook_metadata_revision;
 use warp::integration_testing::step::{
     new_step_with_default_assertions, new_step_with_default_assertions_for_pane,
 };

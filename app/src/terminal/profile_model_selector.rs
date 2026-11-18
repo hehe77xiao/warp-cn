@@ -1884,9 +1884,7 @@ impl ProfileModelSelector {
                     )))
                     .finish();
 
-                let tooltip = appearance
-                    .ui_builder()
-                    .tool_tip(interactive_tooltip);
+                let tooltip = appearance.ui_builder().tool_tip(interactive_tooltip);
                 let mut stack = Stack::new();
                 stack.add_child(button_with_hover);
                 stack.add_positioned_overlay_child(

@@ -122,12 +122,12 @@ impl RequestMetadataTurnView {
             appearance.ui_font_family(),
             font_size,
         )
-            .with_style(warpui::fonts::Properties {
-                weight: warpui::fonts::Weight::Bold,
-                ..Default::default()
-            })
-            .with_color(blended_colors::text_main(theme, background))
-            .finish();
+        .with_style(warpui::fonts::Properties {
+            weight: warpui::fonts::Weight::Bold,
+            ..Default::default()
+        })
+        .with_color(blended_colors::text_main(theme, background))
+        .finish();
 
         let close_icon_size = font_size;
         let close_button = Hoverable::new(self.close_button_mouse_state.clone(), {

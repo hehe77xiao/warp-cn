@@ -3,11 +3,10 @@ use warp_core::ui::color::coloru_with_opacity;
 use warp_core::ui::theme::color::internal_colors;
 use warp_util::path::user_friendly_path;
 use warpui::elements::{
-    ChildAnchor, ConstrainedBox, Container, CornerRadius,
-    CrossAxisAlignment, DispatchEventResult, Element, EventHandler, Fill as ElementFill, Flex,
-    Highlight, Hoverable, MainAxisAlignment, MainAxisSize, MouseInBehavior, MouseStateHandle,
-    OffsetPositioning, ParentAnchor, ParentElement, ParentOffsetBounds,
-    Radius, SavePosition, Shrinkable, Stack, Text,
+    ChildAnchor, ConstrainedBox, Container, CornerRadius, CrossAxisAlignment, DispatchEventResult,
+    Element, EventHandler, Fill as ElementFill, Flex, Highlight, Hoverable, MainAxisAlignment,
+    MainAxisSize, MouseInBehavior, MouseStateHandle, OffsetPositioning, ParentAnchor,
+    ParentElement, ParentOffsetBounds, Radius, SavePosition, Shrinkable, Stack, Text,
 };
 use warpui::fonts::{Properties, Weight};
 use warpui::platform::Cursor;
@@ -37,7 +36,6 @@ const MAX_TOOLTIP_LENGTH: usize = 80;
 
 /// Spacing between icon and title
 const ICON_SPACING: f32 = 4.;
-
 
 /// Total size of the agent icon-with-status component rendered in each conversation list
 /// row.
@@ -432,7 +430,6 @@ pub fn render_item(props: ItemProps<'_>, app: &AppContext) -> Box<dyn Element> {
     // Wrap in a stack to support the sharing dialog overlay
     let position_id = conversation_item_position_id(&conversation_id);
     let item_stack = Stack::new().with_child(event_handler);
-
 
     SavePosition::new(item_stack.finish(), &position_id).finish()
 }

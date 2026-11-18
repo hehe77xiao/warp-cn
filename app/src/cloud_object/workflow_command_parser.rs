@@ -4,13 +4,13 @@
 use std::collections::{HashMap, VecDeque};
 use std::ops::Range;
 
+use cloud_object_models::{ArgumentType, Workflow};
 use itertools::Itertools;
 use lazy_static::lazy_static;
 use regex::Regex;
 use string_offset::{ByteOffset, CharCounter, CharOffset};
 
 use crate::server::ids::SyncId;
-use cloud_object_models::{ArgumentType, Workflow};
 
 lazy_static! {
     /// Regex for escaped arguments in workflow command.

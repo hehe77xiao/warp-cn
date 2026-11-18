@@ -326,7 +326,6 @@ impl SharingDialog {
             .and_then(|id| CloudModel::as_ref(app).get_by_uid(&id.uid()))
     }
 
-
     /// The name of the targeted object.
     fn targeted_object_name(&self, app: &AppContext) -> String {
         self.target
@@ -424,7 +423,6 @@ impl SharingDialog {
             }
         }
     }
-
 
     /// Refreshes all permissions that have cached UI state.
     fn refresh_object_permission_states(&mut self, ctx: &mut ViewContext<Self>) {

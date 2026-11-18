@@ -1450,7 +1450,10 @@ impl SettingsView {
                 .iter()
                 .position(|item| matches!(item, SettingsNavItem::Page(SettingsSection::Privacy)))
                 .unwrap_or(nav_items.len());
-            nav_items.insert(scripting_index, SettingsNavItem::Page(SettingsSection::Scripting));
+            nav_items.insert(
+                scripting_index,
+                SettingsNavItem::Page(SettingsSection::Scripting),
+            );
         }
 
         let initial_page = match page {

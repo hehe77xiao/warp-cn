@@ -25,6 +25,7 @@ use std::thread::JoinHandle;
 use ai::project_context::model::ProjectRulePath;
 use ai::workspace::WorkspaceMetadata as CodeWorkspaceMetadata;
 use chrono::{DateTime, Local, Utc};
+use cloud_object_models::CloudFolder;
 use instant::Instant;
 use lsp::supported_servers::LSPServerType;
 #[cfg(any(feature = "local_fs", feature = "integration_tests"))]
@@ -49,11 +50,11 @@ use crate::ai::mcp::TemplatableMCPServerInstallation;
 use crate::ai::persisted_workspace::EnablementState;
 use crate::app_state::AppState;
 use crate::auth::auth_manager::PersistedCurrentUserInformation;
-use crate::cloud_object::CloudWorkflow;
 use crate::cloud_object::model::actions::ObjectAction;
 use crate::cloud_object::model::generic_string_model::CloudStringObject;
 use crate::cloud_object::{
-    CloudObject, CloudObjectMetadata, ObjectIdType, RevisionAndLastEditor, ServerCreationInfo,
+    CloudObject, CloudObjectMetadata, CloudWorkflow, ObjectIdType, RevisionAndLastEditor,
+    ServerCreationInfo,
 };
 use crate::notebooks::CloudNotebook;
 use crate::server::experiments::ServerExperiment;
@@ -64,7 +65,6 @@ use crate::terminal::model::block::{SerializedAgentViewVisibility, SerializedBlo
 use crate::terminal::model::session::SessionId;
 use crate::workspaces::user_profiles::UserProfileWithUID;
 use crate::workspaces::workspace::{Workspace as WorkspaceMetadata, WorkspaceUid};
-use cloud_object_models::CloudFolder;
 
 #[derive(Clone)]
 pub enum PersistenceScope {

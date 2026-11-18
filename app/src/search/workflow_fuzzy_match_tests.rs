@@ -1,5 +1,6 @@
-use super::FuzzyMatchWorkflowResult;
 use cloud_object_models::Workflow;
+
+use super::FuzzyMatchWorkflowResult;
 
 #[test]
 fn test_exact_command_before_exact_title() {

@@ -9,17 +9,17 @@
 
 use std::collections::HashMap;
 
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 use futures::StreamExt;
 use reqwest_eventsource::{Event as SseEvent, EventSource, RequestBuilderExt};
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 use super::decode::NormalizedTurn;
 use super::tool_schema;
 use super::{DecodedBlock, DriverChunkStream, DriverOutput, DriverStreamChunk};
-use crate::server::direct_backend::common::{self, truncate_for_log};
 use crate::server::direct_backend::ResolvedProvider;
+use crate::server::direct_backend::common::{self, truncate_for_log};
 
 const ANTHROPIC_VERSION: &str = "2023-06-01";
 const DEFAULT_MAX_TOKENS: u32 = 8192;
@@ -98,9 +98,7 @@ pub async fn call_streaming(
         .header("anthropic-version", ANTHROPIC_VERSION)
         .header("accept", "text/event-stream")
         .json(&body);
-    let event_source = req
-        .eventsource()
-        .context("Anthropic SSE init")?;
+    let event_source = req.eventsource().context("Anthropic SSE init")?;
 
     let model_id = provider.model_id.clone();
     let state = StreamState {
@@ -271,8 +269,12 @@ enum ContentBlockBody {
 #[derive(Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 enum BlockDelta {
-    TextDelta { text: String },
-    InputJsonDelta { partial_json: String },
+    TextDelta {
+        text: String,
+    },
+    InputJsonDelta {
+        partial_json: String,
+    },
     #[serde(other)]
     Other,
 }
@@ -359,7 +361,7 @@ fn parse_anthropic_event(data: &str, st: &mut StreamState) -> ParseOutcome {
                                     "[tool error] Your `{}` tool input wasn't valid JSON: {e}",
                                     acc.name
                                 ),
-                            })
+                            });
                         }
                     }
                 };
@@ -386,9 +388,10 @@ fn parse_anthropic_event(data: &str, st: &mut StreamState) -> ParseOutcome {
         }
         SseEnvelope::MessageStop => ParseOutcome::End,
         SseEnvelope::Ping => ParseOutcome::Continue,
-        SseEnvelope::Error { error } => {
-            ParseOutcome::Err(anyhow!("Anthropic SSE error: {}", truncate_for_log(&error.message, 256)))
-        }
+        SseEnvelope::Error { error } => ParseOutcome::Err(anyhow!(
+            "Anthropic SSE error: {}",
+            truncate_for_log(&error.message, 256)
+        )),
         SseEnvelope::Other => ParseOutcome::Continue,
     }
 }
@@ -417,7 +420,9 @@ fn project_messages(turns: &[NormalizedTurn]) -> Vec<Value> {
                     json!({"role": "user", "content": blocks})
                 }
             }
-            NormalizedTurn::Assistant { text, tool_uses, .. } => {
+            NormalizedTurn::Assistant {
+                text, tool_uses, ..
+            } => {
                 let mut blocks: Vec<Value> = Vec::new();
                 if let Some(t) = text {
                     blocks.push(json!({"type": "text", "text": t}));
@@ -456,7 +461,6 @@ struct ToolSpec<'a> {
     description: &'a str,
     input_schema: Value,
 }
-
 
 #[derive(Deserialize)]
 struct UsageBlock {

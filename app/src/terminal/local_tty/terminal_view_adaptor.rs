@@ -16,8 +16,9 @@ use session_sharing_protocol::common::{
     LongRunningCommandAgentInteractionState, SelectedConversation, UniversalDeveloperInputContext,
 };
 use session_sharing_protocol::sharer::{
-    AddGuestsResponse, Lifetime, LinkAccessLevelUpdateResponse, RemoveGuestResponse, SessionEndedReason, SessionSourceType,
-    TeamAccessLevelUpdateResponse, UpdatePendingUserRoleResponse,
+    AddGuestsResponse, Lifetime, LinkAccessLevelUpdateResponse, RemoveGuestResponse,
+    SessionEndedReason, SessionSourceType, TeamAccessLevelUpdateResponse,
+    UpdatePendingUserRoleResponse,
 };
 use warp_core::execution_mode::AppExecutionMode;
 use warp_core::send_telemetry_from_ctx;

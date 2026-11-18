@@ -5,7 +5,6 @@
 //! pickers and the context-window control, plus the AI credit usage summary.
 
 use std::borrow::Cow;
-
 use std::path::{Path, PathBuf};
 
 use ::ai::api_keys::ApiKeyManager;

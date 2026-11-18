@@ -3,6 +3,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use chrono::Local;
+use cloud_object_models::Workflow;
 use itertools::Itertools;
 use ordered_float::OrderedFloat;
 use warp_core::command::ExitCode;
@@ -36,7 +37,6 @@ use crate::terminal::model::session::command_executor::testing::TestCommandExecu
 use crate::terminal::model::session::{Session, SessionId, SessionInfo};
 use crate::terminal::{History, HistoryEntry};
 use crate::test_util::assert_eventually;
-use cloud_object_models::Workflow;
 
 #[derive(Clone, Debug)]
 enum TestItemAction {

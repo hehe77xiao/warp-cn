@@ -11,6 +11,7 @@ use ai::document::DEFAULT_PLANNING_DOCUMENT_TITLE;
 // TODO(vorporeal): Remove this re-export at some point.
 pub use ai::document::{AIDocumentId, AIDocumentVersion};
 use chrono::{DateTime, Local, Utc};
+use cloud_object_models::CloudFolder;
 use itertools::Itertools;
 use uuid::Uuid;
 use warp_editor::model::RichTextEditorModel;
@@ -26,9 +27,8 @@ use crate::ai::blocklist::{BlocklistAIHistoryEvent, BlocklistAIHistoryModel};
 use crate::ai::execution_profiles::profiles::AIExecutionProfilesModel;
 use crate::appearance::Appearance;
 use crate::auth::auth_state::AuthStateProvider;
-use crate::cloud_object::CloudObjectTypeAndId;
 use crate::cloud_object::model::persistence::{CloudModel, CloudModelEvent};
-use crate::cloud_object::{CloudObject, CloudObjectEventEntrypoint, Owner};
+use crate::cloud_object::{CloudObject, CloudObjectEventEntrypoint, CloudObjectTypeAndId, Owner};
 use crate::global_resource_handles::GlobalResourceHandlesProvider;
 use crate::notebooks::CloudNotebookModel;
 use crate::notebooks::editor::model::{
@@ -47,7 +47,6 @@ use crate::terminal::model::session::Session;
 use crate::terminal::model::session::active_session::ActiveSession;
 use crate::throttle::throttle;
 use crate::workspaces::user_workspaces::{SoleTeamError, UserWorkspaces};
-use cloud_object_models::CloudFolder;
 
 /// The frequency at which we check for modifications and save the AI document to the server.
 /// Uses the same 2-second period as notebooks for consistency.

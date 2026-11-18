@@ -13,9 +13,9 @@
 //! 4. A `*_result_to_text` helper for tool-result chat-history rendering.
 //! 5. Wire all of the above into the four dispatch functions at the bottom.
 
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 use serde::Deserialize;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use warp_multi_agent_api as api;
 
 /// Small models behind OpenAI-compatible gateways routinely double-encode
@@ -84,9 +84,7 @@ pub fn all_tools() -> &'static [ToolKind] {
 /// except the MCP tools (`read_mcp_resource`, `call_mcp_tool`) are stripped
 /// when no MCP servers are configured — there's nothing valid to call, and
 /// always-on advertisement encourages models to fabricate `server_id` values.
-pub fn advertised_tools(
-    mcp: Option<&warp_multi_agent_api::request::McpContext>,
-) -> Vec<ToolKind> {
+pub fn advertised_tools(mcp: Option<&warp_multi_agent_api::request::McpContext>) -> Vec<ToolKind> {
     let has_mcp = mcp.is_some_and(|ctx| !ctx.servers.is_empty());
     all_tools()
         .iter()
@@ -173,7 +171,9 @@ pub fn parse_input(kind: ToolKind, value: Value) -> anyhow::Result<api::message:
             api::message::tool_call::Tool::RunShellCommand(parse_run_shell_command(value)?)
         }
         ToolKind::Grep => api::message::tool_call::Tool::Grep(parse_grep(value)?),
-        ToolKind::FileGlobV2 => api::message::tool_call::Tool::FileGlobV2(parse_file_glob_v2(value)?),
+        ToolKind::FileGlobV2 => {
+            api::message::tool_call::Tool::FileGlobV2(parse_file_glob_v2(value)?)
+        }
         ToolKind::ApplyFileDiffs => {
             api::message::tool_call::Tool::ApplyFileDiffs(parse_apply_file_diffs(value)?)
         }
@@ -189,21 +189,21 @@ pub fn parse_input(kind: ToolKind, value: Value) -> anyhow::Result<api::message:
             parse_read_shell_command_output(value)?,
         ),
         ToolKind::TransferShellCommandControlToUser => {
-            api::message::tool_call::Tool::TransferShellCommandControlToUser(parse_transfer_control(
-                value,
-            )?)
+            api::message::tool_call::Tool::TransferShellCommandControlToUser(
+                parse_transfer_control(value)?,
+            )
         }
         ToolKind::ReadMcpResource => {
             api::message::tool_call::Tool::ReadMcpResource(parse_read_mcp_resource(value)?)
         }
-        ToolKind::CallMcpTool => api::message::tool_call::Tool::CallMcpTool(parse_call_mcp_tool(value)?),
+        ToolKind::CallMcpTool => {
+            api::message::tool_call::Tool::CallMcpTool(parse_call_mcp_tool(value)?)
+        }
     })
 }
 
 /// Project a proto `Tool` back to (kind, JSON) for chat history.
-pub fn proto_to_history(
-    tool: &api::message::tool_call::Tool,
-) -> Option<(ToolKind, Value)> {
+pub fn proto_to_history(tool: &api::message::tool_call::Tool) -> Option<(ToolKind, Value)> {
     use api::message::tool_call::Tool as T;
     match tool {
         T::ReadFiles(rf) => Some((ToolKind::ReadFiles, read_files_to_json(rf))),
@@ -240,7 +240,9 @@ pub fn message_result_to_text(
         R::RunShellCommand(r) => Some((ToolKind::RunShellCommand, run_shell_result_to_text(r))),
         R::Grep(r) => Some((ToolKind::Grep, grep_result_to_text(r))),
         R::FileGlobV2(r) => Some((ToolKind::FileGlobV2, file_glob_v2_result_to_text(r))),
-        R::ApplyFileDiffs(r) => Some((ToolKind::ApplyFileDiffs, apply_file_diffs_result_to_text(r))),
+        R::ApplyFileDiffs(r) => {
+            Some((ToolKind::ApplyFileDiffs, apply_file_diffs_result_to_text(r)))
+        }
         R::AskUserQuestion(r) => Some((ToolKind::AskUserQuestion, ask_user_result_to_text(r))),
         R::WriteToLongRunningShellCommand(r) => Some((
             ToolKind::WriteToLongRunningShellCommand,
@@ -274,7 +276,9 @@ pub fn request_result_to_text(
         R::RunShellCommand(r) => Some((ToolKind::RunShellCommand, run_shell_result_to_text(r))),
         R::Grep(r) => Some((ToolKind::Grep, grep_result_to_text(r))),
         R::FileGlobV2(r) => Some((ToolKind::FileGlobV2, file_glob_v2_result_to_text(r))),
-        R::ApplyFileDiffs(r) => Some((ToolKind::ApplyFileDiffs, apply_file_diffs_result_to_text(r))),
+        R::ApplyFileDiffs(r) => {
+            Some((ToolKind::ApplyFileDiffs, apply_file_diffs_result_to_text(r)))
+        }
         R::AskUserQuestion(r) => Some((ToolKind::AskUserQuestion, ask_user_result_to_text(r))),
         R::WriteToLongRunningShellCommand(r) => Some((
             ToolKind::WriteToLongRunningShellCommand,
@@ -299,8 +303,7 @@ pub fn request_result_to_text(
 
 // ── ReadFiles ────────────────────────────────────────────────────────────
 
-const READ_FILES_DESC: &str =
-    "Read text from one or more files in the user's workspace. \
+const READ_FILES_DESC: &str = "Read text from one or more files in the user's workspace. \
      Use this when you need to inspect file contents to answer the user. \
      Provide either an absolute path or a path relative to the workspace root. \
      Optionally restrict to specific 1-indexed line ranges; omit `lines` to read \
@@ -425,7 +428,11 @@ fn read_files_result_to_text(rf: &api::ReadFilesResult) -> String {
             for any in &s.files {
                 match any.content.as_ref() {
                     Some(api::any_file_content::Content::TextContent(t)) => {
-                        parts.push(format_one_file(&t.file_path, &t.content, t.line_range.as_ref()));
+                        parts.push(format_one_file(
+                            &t.file_path,
+                            &t.content,
+                            t.line_range.as_ref(),
+                        ));
                     }
                     Some(api::any_file_content::Content::BinaryContent(b)) => {
                         parts.push(format!("<binary file: {}>", b.file_path));
@@ -447,17 +454,23 @@ fn format_file_contents<'a>(files: impl Iterator<Item = &'a api::FileContent>) -
         .join("\n\n")
 }
 
-fn format_one_file(path: &str, content: &str, line_range: Option<&api::FileContentLineRange>) -> String {
+fn format_one_file(
+    path: &str,
+    content: &str,
+    line_range: Option<&api::FileContentLineRange>,
+) -> String {
     match line_range {
-        Some(r) => format!("===== {} (lines {}..{}) =====\n{}", path, r.start, r.end, content),
+        Some(r) => format!(
+            "===== {} (lines {}..{}) =====\n{}",
+            path, r.start, r.end, content
+        ),
         None => format!("===== {} =====\n{}", path, content),
     }
 }
 
 // ── RunShellCommand ──────────────────────────────────────────────────────
 
-const RUN_SHELL_DESC: &str =
-    "Run a shell command on the user's machine and return its output. \
+const RUN_SHELL_DESC: &str = "Run a shell command on the user's machine and return its output. \
      Use this when the user asks to inspect system state (ls, grep, cargo …), \
      run tests, build, or otherwise execute commands. \
      \
@@ -510,7 +523,9 @@ struct RunShellInput {
     is_read_only: bool,
 }
 
-fn parse_run_shell_command(value: Value) -> anyhow::Result<api::message::tool_call::RunShellCommand> {
+fn parse_run_shell_command(
+    value: Value,
+) -> anyhow::Result<api::message::tool_call::RunShellCommand> {
     let parsed: RunShellInput =
         serde_json::from_value(value).context("run_shell_command input shape mismatch")?;
     let cmd = parsed.command.trim().to_string();
@@ -579,7 +594,11 @@ fn shell_error_note(e: &api::ShellCommandError) -> &'static str {
 
 fn run_shell_result_to_text(r: &api::RunShellCommandResult) -> String {
     use api::run_shell_command_result::Result as R;
-    let actual_cmd = if r.command.is_empty() { None } else { Some(r.command.as_str()) };
+    let actual_cmd = if r.command.is_empty() {
+        None
+    } else {
+        Some(r.command.as_str())
+    };
     let preface = match actual_cmd {
         Some(c) => format!("Ran: `{c}`"),
         None => String::from("Ran: (command unavailable)"),
@@ -605,8 +624,7 @@ fn run_shell_result_to_text(r: &api::RunShellCommandResult) -> String {
 
 // ── Grep ─────────────────────────────────────────────────────────────────
 
-const GREP_DESC: &str =
-    "Search file contents for one or more patterns. Each pattern is treated as \
+const GREP_DESC: &str = "Search file contents for one or more patterns. Each pattern is treated as \
      a regular expression. The result is a list of (file_path, line_number) \
      pairs the user can navigate. Use this for codebase searches before reading \
      individual files.";
@@ -634,8 +652,7 @@ struct GrepInput {
 }
 
 fn parse_grep(value: Value) -> anyhow::Result<api::message::tool_call::Grep> {
-    let parsed: GrepInput =
-        serde_json::from_value(value).context("grep input shape mismatch")?;
+    let parsed: GrepInput = serde_json::from_value(value).context("grep input shape mismatch")?;
     if parsed.queries.is_empty() {
         return Err(anyhow!("grep requires at least one query"));
     }
@@ -686,8 +703,7 @@ fn grep_result_to_text(r: &api::GrepResult) -> String {
 
 // ── FileGlobV2 ───────────────────────────────────────────────────────────
 
-const FILE_GLOB_DESC: &str =
-    "Find files in the workspace whose names match one or more glob patterns \
+const FILE_GLOB_DESC: &str = "Find files in the workspace whose names match one or more glob patterns \
      (`*`, `?`, `[..]`). Use this to locate files when you don't know exact \
      paths. Returns a list of file paths. The client enforces sensible \
      defaults; explicit caps you might supply are advisory.";
@@ -772,8 +788,7 @@ fn file_glob_v2_result_to_text(r: &api::FileGlobV2Result) -> String {
 
 // ── ApplyFileDiffs ───────────────────────────────────────────────────────
 
-const APPLY_FILE_DIFFS_DESC: &str =
-    "Apply targeted edits to one or more files in the workspace. Edits are \
+const APPLY_FILE_DIFFS_DESC: &str = "Apply targeted edits to one or more files in the workspace. Edits are \
      either search-and-replace string substitutions, new files (full content), \
      or deletions. Use this to implement code changes the user requested. \
      Always include a short `summary` and ensure `search` matches existing \
@@ -850,11 +865,9 @@ struct DeleteFileInput {
     file_path: String,
 }
 
-fn parse_apply_file_diffs(
-    value: Value,
-) -> anyhow::Result<api::message::tool_call::ApplyFileDiffs> {
-    let parsed: ApplyFileDiffsInput = serde_json::from_value(value)
-        .context("apply_file_diffs input shape mismatch")?;
+fn parse_apply_file_diffs(value: Value) -> anyhow::Result<api::message::tool_call::ApplyFileDiffs> {
+    let parsed: ApplyFileDiffsInput =
+        serde_json::from_value(value).context("apply_file_diffs input shape mismatch")?;
     if parsed.diffs.is_empty() && parsed.new_files.is_empty() && parsed.deleted_files.is_empty() {
         return Err(anyhow!(
             "apply_file_diffs needs at least one of diffs / new_files / deleted_files"
@@ -962,7 +975,11 @@ fn apply_file_diffs_result_to_text(r: &api::ApplyFileDiffsResult) -> String {
             let v2 = &s.updated_files_v2;
             for u in v2 {
                 if let Some(file) = u.file.as_ref() {
-                    let edited_marker = if u.was_edited_by_user { " (edited by user)" } else { "" };
+                    let edited_marker = if u.was_edited_by_user {
+                        " (edited by user)"
+                    } else {
+                        ""
+                    };
                     out.push_str(&format!(
                         "Updated {}{}: {} bytes\n",
                         file.file_path,
@@ -987,8 +1004,7 @@ fn apply_file_diffs_result_to_text(r: &api::ApplyFileDiffsResult) -> String {
 
 // ── AskUserQuestion ──────────────────────────────────────────────────────
 
-const ASK_USER_DESC: &str =
-    "Pose one or more multiple-choice questions to the user when the next step \
+const ASK_USER_DESC: &str = "Pose one or more multiple-choice questions to the user when the next step \
      genuinely requires their input (e.g. choosing between two implementation \
      paths, confirming a destructive action, picking a name). Each question \
      must include `question_id`, `question` text, and `options` (1-4 labels). \
@@ -1126,8 +1142,7 @@ fn ask_user_question_to_json(q: &api::AskUserQuestion) -> Value {
             });
             match mc {
                 Some(mc) => {
-                    let options: Vec<&str> =
-                        mc.options.iter().map(|o| o.label.as_str()).collect();
+                    let options: Vec<&str> = mc.options.iter().map(|o| o.label.as_str()).collect();
                     json!({
                         "question_id": q.question_id,
                         "question": q.question,
@@ -1164,11 +1179,7 @@ fn ask_user_result_to_text(r: &api::AskUserQuestionResult) -> String {
                         if !mc.other_text.is_empty() {
                             parts.push(format!("other: {}", mc.other_text));
                         }
-                        out.push_str(&format!(
-                            "{}: {}\n",
-                            ans.question_id,
-                            parts.join("; ")
-                        ));
+                        out.push_str(&format!("{}: {}\n", ans.question_id, parts.join("; ")));
                     }
                     Some(_) => out.push_str(&format!("{}: (skipped)\n", ans.question_id)),
                     None => out.push_str(&format!("{}: (no answer)\n", ans.question_id)),
@@ -1187,8 +1198,7 @@ fn ask_user_result_to_text(r: &api::AskUserQuestionResult) -> String {
 
 // ── WriteToLongRunningShellCommand ───────────────────────────────────────
 
-const WRITE_LRC_DESC: &str =
-    "Send keystrokes (or a line / block of text) to a long-running shell \
+const WRITE_LRC_DESC: &str = "Send keystrokes (or a line / block of text) to a long-running shell \
      command identified by `command_id` (returned in a previous \
      `run_shell_command` snapshot). Use `mode: \"line\"` for REPL prompts, \
      `mode: \"block\"` for multi-line bracketed paste, `mode: \"raw\"` \
@@ -1216,22 +1226,28 @@ struct WriteLrcInput {
 fn parse_write_to_lrc(
     value: Value,
 ) -> anyhow::Result<api::message::tool_call::WriteToLongRunningShellCommand> {
-    let parsed: WriteLrcInput =
-        serde_json::from_value(value).context("write_to_long_running_shell_command shape mismatch")?;
+    let parsed: WriteLrcInput = serde_json::from_value(value)
+        .context("write_to_long_running_shell_command shape mismatch")?;
     if parsed.command_id.is_empty() {
         return Err(anyhow!("write_to_lrc requires command_id"));
     }
     let mode_oneof = match parsed.mode.as_deref().unwrap_or("raw") {
         "raw" => api::message::tool_call::write_to_long_running_shell_command::mode::Mode::Raw(()),
-        "line" => api::message::tool_call::write_to_long_running_shell_command::mode::Mode::Line(()),
-        "block" => api::message::tool_call::write_to_long_running_shell_command::mode::Mode::Block(()),
+        "line" => {
+            api::message::tool_call::write_to_long_running_shell_command::mode::Mode::Line(())
+        }
+        "block" => {
+            api::message::tool_call::write_to_long_running_shell_command::mode::Mode::Block(())
+        }
         other => return Err(anyhow!("write_to_lrc unknown mode `{other}`")),
     };
     Ok(api::message::tool_call::WriteToLongRunningShellCommand {
         input: parsed.input.into_bytes(),
-        mode: Some(api::message::tool_call::write_to_long_running_shell_command::Mode {
-            mode: Some(mode_oneof),
-        }),
+        mode: Some(
+            api::message::tool_call::write_to_long_running_shell_command::Mode {
+                mode: Some(mode_oneof),
+            },
+        ),
         command_id: parsed.command_id,
     })
 }
@@ -1244,9 +1260,9 @@ fn write_to_lrc_to_json(w: &api::message::tool_call::WriteToLongRunningShellComm
         Some(api::message::tool_call::write_to_long_running_shell_command::mode::Mode::Line(_)) => {
             "line"
         }
-        Some(api::message::tool_call::write_to_long_running_shell_command::mode::Mode::Block(_)) => {
-            "block"
-        }
+        Some(api::message::tool_call::write_to_long_running_shell_command::mode::Mode::Block(
+            _,
+        )) => "block",
         None => "raw",
     };
     let input_str = String::from_utf8_lossy(&w.input).to_string();
@@ -1276,8 +1292,7 @@ fn write_to_lrc_result_to_text(r: &api::WriteToLongRunningShellCommandResult) ->
 
 // ── ReadShellCommandOutput ───────────────────────────────────────────────
 
-const READ_SHELL_OUTPUT_DESC: &str =
-    "Re-read the latest output of a long-running shell command identified by \
+const READ_SHELL_OUTPUT_DESC: &str = "Re-read the latest output of a long-running shell command identified by \
      `command_id`. Optionally wait `delay_seconds` seconds before reading, or \
      wait for completion via `wait_until_complete: true`. Use to poll \
      progress of long jobs (build, test, server log) without re-issuing them.";
@@ -1305,8 +1320,8 @@ struct ReadShellOutputInput {
 fn parse_read_shell_command_output(
     value: Value,
 ) -> anyhow::Result<api::message::tool_call::ReadShellCommandOutput> {
-    let parsed: ReadShellOutputInput = serde_json::from_value(value)
-        .context("read_shell_command_output shape mismatch")?;
+    let parsed: ReadShellOutputInput =
+        serde_json::from_value(value).context("read_shell_command_output shape mismatch")?;
     if parsed.command_id.is_empty() {
         return Err(anyhow!("read_shell_command_output requires command_id"));
     }
@@ -1318,12 +1333,14 @@ fn parse_read_shell_command_output(
         }
         let s = secs.trunc() as i64;
         let ns = ((secs - s as f64) * 1_000_000_000.0).round() as i32;
-        Some(api::message::tool_call::read_shell_command_output::Delay::Duration(
-            ::prost_types::Duration {
-                seconds: s,
-                nanos: ns,
-            },
-        ))
+        Some(
+            api::message::tool_call::read_shell_command_output::Delay::Duration(
+                ::prost_types::Duration {
+                    seconds: s,
+                    nanos: ns,
+                },
+            ),
+        )
     } else {
         None
     };
@@ -1333,9 +1350,7 @@ fn parse_read_shell_command_output(
     })
 }
 
-fn read_shell_command_output_to_json(
-    r: &api::message::tool_call::ReadShellCommandOutput,
-) -> Value {
+fn read_shell_command_output_to_json(r: &api::message::tool_call::ReadShellCommandOutput) -> Value {
     let mut obj = serde_json::Map::new();
     obj.insert("command_id".into(), json!(r.command_id));
     if let Some(d) = r.delay.as_ref() {
@@ -1376,8 +1391,7 @@ fn read_shell_command_output_result_to_text(r: &api::ReadShellCommandOutputResul
 
 // ── TransferShellCommandControlToUser ────────────────────────────────────
 
-const TRANSFER_CONTROL_DESC: &str =
-    "Hand control of a long-running interactive shell command back to the \
+const TRANSFER_CONTROL_DESC: &str = "Hand control of a long-running interactive shell command back to the \
      user (e.g. they should now interact with `vim` / `top` / a REPL \
      directly). Provide a short `reason` explaining what to do next.";
 
@@ -1401,7 +1415,9 @@ fn parse_transfer_control(
     let parsed: TransferControlInput = serde_json::from_value(value)
         .context("transfer_shell_command_control_to_user shape mismatch")?;
     if parsed.reason.trim().is_empty() {
-        return Err(anyhow!("transfer_shell_command_control_to_user requires reason"));
+        return Err(anyhow!(
+            "transfer_shell_command_control_to_user requires reason"
+        ));
     }
     Ok(api::message::tool_call::TransferShellCommandControlToUser {
         reason: parsed.reason,
@@ -1433,8 +1449,7 @@ fn transfer_control_result_to_text(r: &api::TransferShellCommandControlToUserRes
 
 // ── ReadMcpResource (Tier 3) ─────────────────────────────────────────────
 
-const READ_MCP_RESOURCE_DESC: &str =
-    "Read the contents of an MCP (Model Context Protocol) resource. \
+const READ_MCP_RESOURCE_DESC: &str = "Read the contents of an MCP (Model Context Protocol) resource. \
      MCP resources are user-mounted data sources (databases, knowledge bases, \
      ticketing systems, etc.). The user's available servers are listed in your \
      system prompt under \"Available MCP servers\". Provide the resource URI \
@@ -1463,7 +1478,9 @@ struct ReadMcpResourceInput {
     server_id: String,
 }
 
-fn parse_read_mcp_resource(value: Value) -> anyhow::Result<api::message::tool_call::ReadMcpResource> {
+fn parse_read_mcp_resource(
+    value: Value,
+) -> anyhow::Result<api::message::tool_call::ReadMcpResource> {
     let p: ReadMcpResourceInput =
         serde_json::from_value(value).context("read_mcp_resource shape mismatch")?;
     if p.uri.trim().is_empty() {
@@ -1517,8 +1534,7 @@ fn read_mcp_resource_result_to_text(r: &api::ReadMcpResourceResult) -> String {
 
 // ── CallMcpTool (Tier 3) ─────────────────────────────────────────────────
 
-const CALL_MCP_TOOL_DESC: &str =
-    "Invoke an MCP (Model Context Protocol) tool exposed by one of the user's \
+const CALL_MCP_TOOL_DESC: &str = "Invoke an MCP (Model Context Protocol) tool exposed by one of the user's \
      mounted MCP servers. The available servers and their tools are listed in \
      your system prompt under \"Available MCP servers\". `name` MUST exactly \
      match a tool name advertised by `server_id`. `arguments` must satisfy the \
@@ -1566,7 +1582,7 @@ fn parse_call_mcp_tool(value: Value) -> anyhow::Result<api::message::tool_call::
             return Err(anyhow!(
                 "`arguments` must be a JSON object, got {}",
                 short_json_type(other)
-            ))
+            ));
         }
     };
     Ok(api::message::tool_call::CallMcpTool {
@@ -1733,7 +1749,10 @@ mod tests {
             ..Default::default()
         };
         let text = run_shell_result_to_text(&r);
-        assert!(text.contains("command_id: precmd-3520276450626546327-143"), "{text}");
+        assert!(
+            text.contains("command_id: precmd-3520276450626546327-143"),
+            "{text}"
+        );
     }
 
     #[test]
@@ -2069,4 +2088,3 @@ mod tests {
         assert_eq!(proto.args.unwrap().fields.len(), 0);
     }
 }
-

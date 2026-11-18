@@ -8,11 +8,11 @@
 use std::collections::HashMap;
 use std::error::Error as _;
 
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 use futures::StreamExt;
 use reqwest_eventsource::{Event as SseEvent, RequestBuilderExt};
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 use super::decode::NormalizedTurn;
 use super::tool_schema;
@@ -123,7 +123,8 @@ pub async fn call_streaming(
                 None => {
                     log::info!(
                         "DirectBackend OpenAI: SSE closed gracefully after {} chunks (stop_reason={:?})",
-                        st.chunk_count, st.stop_reason,
+                        st.chunk_count,
+                        st.stop_reason,
                     );
                     drain_and_finish(&mut st);
                     if let Some(first) = st.pending_tools.pop_front() {
@@ -228,18 +229,23 @@ fn drain_and_finish(st: &mut StreamState) {
             match serde_json::from_str(&acc.args_buf) {
                 Ok(v) => v,
                 Err(e) => {
-                    st.pending_tools.push_back(DriverStreamChunk::ToolUseSoftError {
-                        message: format!(
-                            "[tool error] Your `{}` tool arguments weren't valid JSON: {e}",
-                            acc.name
-                        ),
-                    });
+                    st.pending_tools
+                        .push_back(DriverStreamChunk::ToolUseSoftError {
+                            message: format!(
+                                "[tool error] Your `{}` tool arguments weren't valid JSON: {e}",
+                                acc.name
+                            ),
+                        });
                     continue;
                 }
             }
         };
-        st.pending_tools
-            .push_back(completed_or_soft_error(idx as u32, acc.id, acc.name, parsed_input));
+        st.pending_tools.push_back(completed_or_soft_error(
+            idx as u32,
+            acc.id,
+            acc.name,
+            parsed_input,
+        ));
     }
     st.pending_tools.push_back(DriverStreamChunk::Stop {
         stop_reason: st.stop_reason.clone(),
@@ -405,27 +411,24 @@ fn parse_openai_chunk(data: &str, st: &mut StreamState) -> Vec<DriverStreamChunk
         if let Some(text) = choice.delta.content {
             if !text.is_empty() {
                 // OpenAI never emits parallel text streams: block_idx = 0.
-                out.push(DriverStreamChunk::TextDelta {
-                    block_idx: 0,
-                    text,
-                });
+                out.push(DriverStreamChunk::TextDelta { block_idx: 0, text });
             }
         }
         if let Some(text) = choice.delta.reasoning_content {
             if !text.is_empty() {
-                out.push(DriverStreamChunk::ReasoningDelta {
-                    block_idx: 0,
-                    text,
-                });
+                out.push(DriverStreamChunk::ReasoningDelta { block_idx: 0, text });
             }
         }
         for tc in choice.delta.tool_calls {
-            let acc = st.accs.entry(tc.index).or_insert_with(|| ToolCallAccumulator {
-                id: String::new(),
-                name: String::new(),
-                args_buf: String::new(),
-                started: false,
-            });
+            let acc = st
+                .accs
+                .entry(tc.index)
+                .or_insert_with(|| ToolCallAccumulator {
+                    id: String::new(),
+                    name: String::new(),
+                    args_buf: String::new(),
+                    started: false,
+                });
             if let Some(id) = tc.id {
                 if !id.is_empty() {
                     acc.id = id;
@@ -455,7 +458,10 @@ fn parse_openai_chunk(data: &str, st: &mut StreamState) -> Vec<DriverStreamChunk
         if let Some(fr) = choice.finish_reason {
             // Drain accumulators on terminal finish_reason.
             st.stop_reason = Some(fr.clone());
-            if matches!(fr.as_str(), "tool_calls" | "stop" | "length" | "content_filter") {
+            if matches!(
+                fr.as_str(),
+                "tool_calls" | "stop" | "length" | "content_filter"
+            ) {
                 let drained: Vec<_> = st.accs.drain().collect();
                 let mut sorted = drained;
                 sorted.sort_by_key(|(idx, _)| *idx);
@@ -522,7 +528,10 @@ fn ensure_tool_results_complete(messages: &mut Vec<Value>) {
         let mut j = i + 1;
         let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
         while j < messages.len() {
-            let role = messages[j].get("role").and_then(|r| r.as_str()).unwrap_or("");
+            let role = messages[j]
+                .get("role")
+                .and_then(|r| r.as_str())
+                .unwrap_or("");
             if role != "tool" {
                 break;
             }
@@ -568,10 +577,7 @@ fn message_shape(messages: &[Value]) -> String {
     messages
         .iter()
         .map(|message| {
-            let role = message
-                .get("role")
-                .and_then(|r| r.as_str())
-                .unwrap_or("?");
+            let role = message.get("role").and_then(|r| r.as_str()).unwrap_or("?");
             let mut traits: Vec<String> = Vec::new();
             match message.get("content") {
                 None => traits.push("no-content".to_owned()),
@@ -619,7 +625,12 @@ fn project_messages(turns: &[NormalizedTurn], system: &str) -> Vec<Value> {
                     }));
                 }
             }
-            NormalizedTurn::Assistant { text, tool_uses, reasoning, .. } => {
+            NormalizedTurn::Assistant {
+                text,
+                tool_uses,
+                reasoning,
+                ..
+            } => {
                 let tool_calls: Vec<Value> = tool_uses
                     .iter()
                     .map(|u| {

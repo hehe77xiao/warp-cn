@@ -1,9 +1,8 @@
 use std::collections::{HashMap, HashSet};
 use std::ops::Range;
 
-use handlebars::parser::{ParsedArgumentResult, ParsedArgumentsIterator};
-
 use cloud_object_models::Argument;
+use handlebars::parser::{ParsedArgumentResult, ParsedArgumentsIterator};
 
 /// Represents arguments for workflow to be viewed and edited in ArgumentsEditorView.
 ///

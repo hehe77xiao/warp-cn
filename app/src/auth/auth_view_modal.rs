@@ -369,9 +369,8 @@ impl View for AuthView {
 
         let background_color = match self.auth_view_variant {
             AuthViewVariant::Initial => appearance.theme().background().into(),
-            AuthViewVariant::RequireLoginCloseable | AuthViewVariant::HitDriveObjectLimitCloseable => {
-                ColorU::transparent_black()
-            }
+            AuthViewVariant::RequireLoginCloseable
+            | AuthViewVariant::HitDriveObjectLimitCloseable => ColorU::transparent_black(),
         };
 
         // TODO(liam): use theme colors for background and window border

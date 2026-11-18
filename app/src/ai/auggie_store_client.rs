@@ -11,8 +11,8 @@ use std::{
 };
 
 use ::ai::index::full_source_code_embedding::{
-    store_client::{IntermediateNode, StoreClient},
     CodebaseContextConfig, ContentHash, EmbeddingConfig, Error, Fragment, NodeHash, RepoMetadata,
+    store_client::{IntermediateNode, StoreClient},
 };
 use async_trait::async_trait;
 use dashmap::{DashMap, DashSet};

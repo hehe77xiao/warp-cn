@@ -3195,10 +3195,7 @@ pub fn render_failed_output(props: FailedOutputProps, app: &AppContext) -> Box<d
                 .with_color(if is_error_red {
                     error_color(appearance.theme())
                 } else {
-                    blended_colors::text_sub(
-                        appearance.theme(),
-                        appearance.theme().surface_1(),
-                    )
+                    blended_colors::text_sub(appearance.theme(), appearance.theme().surface_1())
                 })
                 .with_selection_color(if props.is_ai_input_enabled {
                     appearance

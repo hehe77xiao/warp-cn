@@ -94,7 +94,7 @@ use crate::terminal::ShellLaunchData;
 use crate::terminal::input::SET_INPUT_MODE_AGENT_ACTION_NAME;
 use crate::ui_components::blended_colors;
 use crate::ui_components::icons::Icon;
-use crate::util::bindings::{keybinding_name_to_keystroke, BindingDescriptionFluentExt};
+use crate::util::bindings::{BindingDescriptionFluentExt, keybinding_name_to_keystroke};
 use crate::view_components::DismissibleToast;
 use crate::view_components::action_button::{
     ActionButton, ButtonSize, KeystrokeSource, NakedTheme,

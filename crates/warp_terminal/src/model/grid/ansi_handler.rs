@@ -32,9 +32,8 @@ use crate::model::ansi::{
 };
 use crate::model::cell::{Cell, Flags};
 use crate::model::char_or_str::CharOrStr;
-use crate::model::grid::char_width;
 use crate::model::grid::indexing::IndexRegion as _;
-use crate::model::grid::{Dimensions as _, cell, grapheme_cursor};
+use crate::model::grid::{Dimensions as _, cell, char_width, grapheme_cursor};
 use crate::model::image_map::{ImagePlacementData, ImageType, StoredImageMetadata};
 use crate::model::index::{Point, VisibleRow};
 use crate::model::iterm_image::{ITermImage, ITermImageDimensionUnit};

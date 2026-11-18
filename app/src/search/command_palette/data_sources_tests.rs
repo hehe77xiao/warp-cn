@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use chrono::Utc;
 use cloud_object_client::MockObjectClient;
+use cloud_object_models::Workflow;
 use settings::manager::SettingsManager;
 use warp_graphql::object_permissions::AccessLevel;
 use warpui::{App, SingletonEntity, WindowId};
@@ -10,10 +11,9 @@ use super::*;
 use crate::auth::{AuthStateProvider, UserUid};
 use crate::cloud_object::model::persistence::{CloudModel, UpdateSource};
 use crate::cloud_object::model::view::CloudViewModel;
-use crate::cloud_object::{CloudWorkflowModel, WorkflowId};
 use crate::cloud_object::{
-    Owner, Revision, ServerGuestSubject, ServerMetadata, ServerObjectGuest, ServerPermissions,
-    ServerWorkflow,
+    CloudWorkflowModel, Owner, Revision, ServerGuestSubject, ServerMetadata, ServerObjectGuest,
+    ServerPermissions, ServerWorkflow, WorkflowId,
 };
 use crate::features::FeatureFlag;
 use crate::network::NetworkStatus;
@@ -33,7 +33,6 @@ use crate::workspaces::team_tester::TeamTesterStatus;
 use crate::workspaces::user_profiles::UserProfiles;
 use crate::workspaces::user_workspaces::UserWorkspaces;
 use crate::workspaces::workspace::Workspace;
-use cloud_object_models::Workflow;
 
 fn mock_server_metadata() -> ServerMetadata {
     ServerMetadata {

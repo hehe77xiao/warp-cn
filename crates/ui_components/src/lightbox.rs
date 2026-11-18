@@ -182,9 +182,11 @@ impl Component for Lightbox {
                     .finish()
             }
             // No images provided at all.
-            _ if image_count == 0 => Text::new(t!("misc-no-images"), appearance.ui_font_family(), text_size)
-                .with_color(ColorU::white())
-                .finish(),
+            _ if image_count == 0 => {
+                Text::new(t!("misc-no-images"), appearance.ui_font_family(), text_size)
+                    .with_color(ColorU::white())
+                    .finish()
+            }
             // The image bytes failed to load or decode.
             (_, CurrentImageState::Failed) => Text::new(
                 t!("misc-image-load-failed"),

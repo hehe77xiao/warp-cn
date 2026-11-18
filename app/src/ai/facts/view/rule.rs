@@ -22,11 +22,10 @@ use warpui::{
 
 use super::{AIFact, CloudAIFact, CloudAIFactModel, is_edit_allowed, is_syncing, style};
 use crate::ai::facts::AIMemory;
-use crate::cloud_object::CloudObjectTypeAndId;
 use crate::cloud_object::model::generic_string_model::GenericStringObjectId;
 use crate::cloud_object::model::persistence::{CloudModel, CloudModelEvent};
 use crate::cloud_object::{
-    CloudObject, GenericStringObjectFormat, JsonObjectType, Owner, Revision,
+    CloudObject, CloudObjectTypeAndId, GenericStringObjectFormat, JsonObjectType, Owner, Revision,
 };
 use crate::editor::{
     EditorView, Event as EditorEvent, PropagateAndNoOpNavigationKeys, SingleLineEditorOptions,
