@@ -529,12 +529,15 @@ void warp_marked_text_cleared(WarpHostView *);
 // (multi-second main-thread stalls observed with both third-party and built-in
 // IMEs). `discardMarkedText` alone is a no-op without active composition, so
 // the deactivate/activate pair is what actually rebinds the document.
-void warp_fix_current_input_context(void) {
+// Returns NO when there is no active context yet (early app startup), so the
+// caller does not record this attempt as a completed fix.
+BOOL warp_fix_current_input_context(void) {
     NSTextInputContext *inputContext = [NSTextInputContext currentInputContext];
     if (!inputContext) {
-        return;
+        return NO;
     }
     [inputContext deactivate];
     [inputContext activate];
     [inputContext discardMarkedText];
+    return YES;
 }

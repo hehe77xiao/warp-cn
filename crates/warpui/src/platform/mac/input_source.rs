@@ -64,41 +64,47 @@ pub fn select_input_source(source_id: &str) {
 unsafe extern "C" {
     /// host_view.m: forces the active text input context to re-resolve its IME
     /// instance against the selected source (see the comment there for why
-    /// deactivate/activate is needed).
-    fn warp_fix_current_input_context();
+    /// deactivate/activate is needed). Returns nonzero only when an active
+    /// context existed and the fix actually ran.
+    fn warp_fix_current_input_context() -> std::os::raw::c_char;
 }
 
 thread_local! {
     /// The input source the active context was last rebuilt for. Pane-focus
     /// events fire on nearly every keystroke in this app, and rebuilding the
     /// context each time would re-run the AppKit/IMK session handshake per key.
+    /// Only recorded when a fix actually ran (an active context existed), so a
+    /// startup attempt before any context is up does not poison the cache.
     static LAST_FIXED_SOURCE: RefCell<Option<String>> = const { RefCell::new(None) };
 }
 
-/// Queues a re-resolve of the active text input context on the main queue, but
-/// only when the selected input source changed since the last rebuild.
+/// Queues a re-resolve of the active text input context on the main queue,
+/// applied only when the selected input source changed since the last
+/// completed rebuild.
 ///
 /// Must not run synchronously inside view/model event dispatch: the underlying
 /// TSM fix can make synchronous IMK XPC calls that spin a nested run loop,
 /// during which AppKit re-enters Warp's input handling (see
 /// [`select_input_source`] for the same reasoning).
 pub fn fix_current_input_context() {
-    let Some(current) = current_input_source_id() else {
-        return;
-    };
-    let source_changed = LAST_FIXED_SOURCE.with(|last_fixed| {
-        let mut last_fixed = last_fixed.borrow_mut();
-        if last_fixed.as_deref() == Some(current.as_str()) {
-            return false;
+    DispatchQueue::main().exec_async(|| {
+        let Some(current) = current_input_source_id() else {
+            return;
+        };
+        let already_fixed = LAST_FIXED_SOURCE
+            .with(|last_fixed| last_fixed.borrow().as_deref() == Some(current.as_str()));
+        if already_fixed {
+            return;
         }
-        *last_fixed = Some(current);
-        true
-    });
-    if !source_changed {
-        return;
-    }
-    DispatchQueue::main().exec_async(|| unsafe {
-        warp_fix_current_input_context();
+        let started = Instant::now();
+        let fixed = unsafe { warp_fix_current_input_context() != 0 };
+        log::info!(
+            "input-context fix for {current} ran={fixed} in {:?}",
+            started.elapsed(),
+        );
+        if fixed {
+            LAST_FIXED_SOURCE.with(|last_fixed| *last_fixed.borrow_mut() = Some(current));
+        }
     });
 }
 
