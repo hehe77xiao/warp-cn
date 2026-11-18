@@ -68,13 +68,35 @@ unsafe extern "C" {
     fn warp_fix_current_input_context();
 }
 
-/// Queues a re-resolve of the active text input context on the main queue.
+thread_local! {
+    /// The input source the active context was last rebuilt for. Pane-focus
+    /// events fire on nearly every keystroke in this app, and rebuilding the
+    /// context each time would re-run the AppKit/IMK session handshake per key.
+    static LAST_FIXED_SOURCE: RefCell<Option<String>> = const { RefCell::new(None) };
+}
+
+/// Queues a re-resolve of the active text input context on the main queue, but
+/// only when the selected input source changed since the last rebuild.
 ///
 /// Must not run synchronously inside view/model event dispatch: the underlying
 /// TSM fix can make synchronous IMK XPC calls that spin a nested run loop,
 /// during which AppKit re-enters Warp's input handling (see
 /// [`select_input_source`] for the same reasoning).
 pub fn fix_current_input_context() {
+    let Some(current) = current_input_source_id() else {
+        return;
+    };
+    let source_changed = LAST_FIXED_SOURCE.with(|last_fixed| {
+        let mut last_fixed = last_fixed.borrow_mut();
+        if last_fixed.as_deref() == Some(current.as_str()) {
+            return false;
+        }
+        *last_fixed = Some(current);
+        true
+    });
+    if !source_changed {
+        return;
+    }
     DispatchQueue::main().exec_async(|| unsafe {
         warp_fix_current_input_context();
     });
