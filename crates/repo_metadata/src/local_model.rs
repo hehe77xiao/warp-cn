@@ -1144,7 +1144,10 @@ impl LocalRepoMetadataModel {
                     &standing_query_definitions,
                 )
                 .await;
-                (path_for_build, result, standing_results)
+                // Build the map-based state off the main thread (see `index_directory`).
+                let state_result =
+                    result.map(|root_entry| FileTreeState::new_lazy_loaded(root_entry));
+                (path_for_build, state_result, standing_results)
             },
             move |model, (path, build_result, standing_results), ctx| {
                 if model
@@ -1161,8 +1164,7 @@ impl LocalRepoMetadataModel {
                 }
 
                 match build_result {
-                    Ok(root_entry) => {
-                        let state = FileTreeState::new_lazy_loaded(root_entry);
+                    Ok(state) => {
                         model
                             .standing_results
                             .insert(path.clone(), standing_results);
@@ -1966,28 +1968,36 @@ impl LocalRepoMetadataModel {
                 // but still browsable and searchable as far as it goes.
                 let indexed_with_limit = file_limit == 0;
 
+                // Converting the built `Entry` tree into the map-based
+                // `FileTreeState` walks and allocates every entry; it must happen
+                // here on the background executor, not in the main-thread
+                // completion callback (see `finish_build_task` consumers).
+                let built_state = build_result.map(|root_entry| {
+                    FileTreeState::new(
+                        root_entry,
+                        gitignores_for_build.clone(),
+                        Some(repository_handle_for_completion.clone()),
+                    )
+                });
+
                 (
-                    build_result,
+                    built_state,
                     files,
-                    gitignores_for_build,
                     repo_path_str_for_log,
                     std_path_for_completion,
-                    repository_handle_for_completion,
                     indexed_with_limit,
                     standing_results,
                 )
             },
             move |model: &mut LocalRepoMetadataModel,
                   (
-                      build_result,
+                      built_state,
                       files,
-                      gitignores_for_build,
                       repo_path_str,
                       std_repo_path,
-                      repository_handle,
                       indexed_with_limit,
                       standing_results,
-                  ): (Result<Entry, _>, Vec<crate::entry::FileMetadata>, _, String, StandardizedPath, ModelHandle<Repository>, bool, StandingQueryResults),
+                  ): (Result<FileTreeState, _>, Vec<crate::entry::FileMetadata>, String, StandardizedPath, bool, StandingQueryResults),
                   ctx| {
                 if model
                     .finish_build_task(
@@ -1998,13 +2008,11 @@ impl LocalRepoMetadataModel {
                 {
                     return;
                 }
-                match build_result {
-                    Ok(root_entry) => {
+                match built_state {
+                    Ok(state) => {
                         model
                             .standing_results
                             .insert(std_repo_path.clone(), standing_results);
-                        let state =
-                            FileTreeState::new(root_entry, gitignores_for_build, Some(repository_handle));
 
                         if let Err(e) = model.add_repository_internal(
                             std_repo_path.clone(),
