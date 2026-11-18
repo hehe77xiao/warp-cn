@@ -7,6 +7,8 @@ mod antivirus;
 mod app_menus;
 mod app_services;
 mod app_state;
+#[cfg(target_os = "macos")]
+mod appkit_prewarm;
 mod auth;
 mod autoupdate;
 mod banner;
@@ -2517,6 +2519,8 @@ pub(crate) fn initialize_app(
     }
 
     AutoupdateState::register(ctx, server_api.clone());
+    #[cfg(target_os = "macos")]
+    appkit_prewarm::schedule();
     crate::github_update::GithubUpdateState::register(ctx);
     // Best-effort SHA→tag reverse resolution. If the bundle's WarpVersion
     // plist value is wrong/missing, retagging the commit on GitHub will
